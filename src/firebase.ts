@@ -13,6 +13,9 @@ provider.addScope('https://www.googleapis.com/auth/gmail.modify');
 provider.addScope('https://www.googleapis.com/auth/documents');
 provider.addScope('https://www.googleapis.com/auth/spreadsheets');
 provider.addScope('https://www.googleapis.com/auth/drive');
+provider.addScope('https://www.googleapis.com/auth/presentations');
+provider.addScope('https://www.googleapis.com/auth/tasks');
+provider.addScope('https://www.googleapis.com/auth/forms');
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;

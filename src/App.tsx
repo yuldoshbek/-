@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router';
-import { LayoutDashboard, CheckSquare, Calendar, Mail, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Calendar, Mail, FileText, LogOut, Presentation, FormInput } from 'lucide-react';
 import { initAuth, googleSignIn, logout, auth } from './firebase';
 import { User } from 'firebase/auth';
 
@@ -9,6 +9,9 @@ import Tasks from './components/Tasks';
 import Meetings from './components/Meetings';
 import Letters from './components/Letters';
 import Reports from './components/Reports';
+import Presentations from './components/Presentations';
+import GoogleTasks from './components/GoogleTasks';
+import Forms from './components/Forms';
 
 export default function App() {
   const [needsAuth, setNeedsAuth] = useState(true);
@@ -79,6 +82,9 @@ export default function App() {
             <Route path="/meetings" element={<Meetings />} />
             <Route path="/letters" element={<Letters />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/presentations" element={<Presentations />} />
+            <Route path="/google-tasks" element={<GoogleTasks />} />
+            <Route path="/forms" element={<Forms />} />
           </Routes>
         </main>
       </div>
@@ -91,9 +97,12 @@ function Sidebar({ onLogout, user }: { onLogout: () => void, user: User | null }
   const navItems = [
     { label: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
     { label: 'Tasks', path: '/tasks', icon: <CheckSquare size={20} /> },
+    { label: 'Google Tasks', path: '/google-tasks', icon: <CheckSquare size={20} /> },
     { label: 'Meetings', path: '/meetings', icon: <Calendar size={20} /> },
     { label: 'Letters', path: '/letters', icon: <Mail size={20} /> },
     { label: 'Reports', path: '/reports', icon: <FileText size={20} /> },
+    { label: 'Presentations', path: '/presentations', icon: <Presentation size={20} /> },
+    { label: 'Forms', path: '/forms', icon: <FormInput size={20} /> },
   ];
 
   return (
