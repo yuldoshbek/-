@@ -51,6 +51,13 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error('Sign in error:', error);
+    if (error.code === 'auth/popup-blocked') {
+      alert('Всплывающее окно заблокировано. Пожалуйста, откройте приложение в новой вкладке (кнопка в правом верхнем углу) или разрешите всплывающие окна в браузере.');
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      alert('Авторизация прервана. Если вы используете приложение в браузере, попробуйте открыть его в новой вкладке.');
+    } else {
+      alert(`Ошибка авторизации: ${error.message}`);
+    }
     throw error;
   } finally {
     isSigningIn = false;

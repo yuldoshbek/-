@@ -13,8 +13,11 @@ export default function Dashboard() {
     if (auth.currentUser) {
       setUserName(auth.currentUser.displayName || 'Гость');
       setIsAnon(auth.currentUser.isAnonymous);
+    } else {
+      setUserName('Гость');
+      setIsAnon(true); // Treat null user as anon to show login button
     }
-  }, []);
+  }, [auth.currentUser]);
 
   const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
   const urgentTasks = tasks.filter(t => t.priority === 'urgent' && t.status !== 'completed');
