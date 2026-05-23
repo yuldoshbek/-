@@ -49,3 +49,25 @@ export interface Report {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface Complaint {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: 'pending' | 'in_progress' | 'resolved';
+  department: string;
+  reporter: string;
+  deadline: string;
+  createdAt: number;
+  responseTemplate?: string;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  head: string;
+  tasksCount: number;
+  overdueCount: number;
+  kpi: number; // e.g. 92 (for 92%)
+}

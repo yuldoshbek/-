@@ -1,10 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signInAnonymously } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
@@ -59,17 +59,6 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
       alert(`Ошибка авторизации: ${error.message}`);
     }
     throw error;
-  } finally {
-    isSigningIn = false;
-  }
-};
-
-export const guestSignIn = async (): Promise<void> => {
-  try {
-    isSigningIn = true;
-    await signInAnonymously(auth);
-  } catch (error) {
-    console.error('Guest sign in error:', error);
   } finally {
     isSigningIn = false;
   }

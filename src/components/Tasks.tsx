@@ -1,116 +1,365 @@
 import React, { useState } from 'react';
-import { useTasks } from '../lib/hooks';
-import { Plus, CheckCircle2, Circle, Clock, AlertTriangle } from 'lucide-react';
+import { useTasks, useDepartments } from '../lib/hooks';
+import { 
+  Plus, 
+  CheckCircle2, 
+  Circle, 
+  Clock, 
+  AlertTriangle, 
+  LayoutGrid, 
+  List, 
+  Search, 
+  Briefcase, 
+  User, 
+  ChevronRight,
+  Sparkles,
+  Calendar
+} from 'lucide-react';
 import { Task } from '../types';
 
 export default function Tasks() {
-  const { tasks, loading, addTask, updateTaskStatus } = useTasks();
-  const [isAdding, setIsAdding] = useState(false);
+  const { tasks, loading, addTask, updateTaskStatus, updateTaskDetails } = useTasks();
+  const { departments } = useDepartments();
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  
+  // States for filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDept, setSelectedDept] = useState('All');
+  const [selectedPriority, setSelectedPriority] = useState('All');
+
+  // New task form modal state
+  const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState<Task['priority']>('medium');
+  const [newDept, setNewDept] = useState('Департамент IT и цифровизации');
+  const [newAssignee, setNewAssignee] = useState('');
+  const [newDeadline, setNewDeadline] = useState('2026-05-30');
+  const [newSource, setNewSource] = useState('Поручение дирекции');
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
     await addTask({
       title: newTitle,
-      status: 'pending',
+      description: newDesc,
       priority: newPriority,
+      department: newDept,
+      assignee: newAssignee || 'Не назначен',
+      deadline: newDeadline,
+      source: newSource,
+      status: 'pending'
     });
     setNewTitle('');
-    setIsAdding(false);
+    setNewDesc('');
+    setNewAssignee('');
+    setShowAddModal(false);
   };
 
-  if (loading) return <div className="p-8">Загрузка задач...</div>;
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (task.assignee && task.assignee.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                          (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesDept = selectedDept === 'All' || task.department === selectedDept;
+    const matchesPriority = selectedPriority === 'All' || task.priority === selectedPriority;
+    return matchesSearch && matchesDept && matchesPriority;
+  });
+
+  const kanbanColumns: { id: Task['status']; title: string; color: string }[] = [
+    { id: 'pending', title: 'Ожидает (Pending)', color: 'bg-slate-100 text-slate-800 border-t-slate-400' },
+    { id: 'in_progress', title: 'В работе (In Progress)', color: 'bg-blue-50 text-blue-800 border-t-blue-500' },
+    { id: 'completed', title: 'Выполнено (Completed)', color: 'bg-emerald-50 text-emerald-800 border-t-emerald-500' },
+    { id: 'overdue', title: 'Просрочено (Overdue)', color: 'bg-rose-50 text-rose-800 border-t-rose-500' }
+  ];
+
+  if (loading) return <div className="p-8 text-center text-slate-400">Загрузка поручений...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-8 max-w-7xl mx-auto space-y-6 font-sans">
+      
+      {/* Page Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200/60 pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Внутренние поручения</h1>
-          <p className="text-slate-500 mt-1">Управление поручениями и контроль исполнения</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-display">Задачи и поручения СЭД</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Полный контроль хода выполнения протокольных задач, поручений департаментов и рисков контроля.</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
-        >
-          <Plus size={18} />
-          Новое поручение
-        </button>
+
+        <div className="flex gap-3">
+          {/* View Toggle Badges */}
+          <div className="flex border border-slate-250 rounded-xl p-1 bg-slate-100 text-slate-600 text-xs">
+            <button 
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'hover:text-slate-900'}`}
+            >
+              <List size={14} />
+              <span>Таблица СЭД</span>
+            </button>
+            <button 
+              onClick={() => setViewMode('kanban')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-sm' : 'hover:text-slate-900'}`}
+            >
+              <LayoutGrid size={14} />
+              <span>Канбан-Доска</span>
+            </button>
+          </div>
+
+          <button 
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase cursor-pointer transition-colors shadow-sm"
+          >
+            <Plus size={16} />
+            <span>Добавить Поручение</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Filter and Search Panel */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+          <input 
+            type="text" 
+            placeholder="Поиск по задачам, исполнителям..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full text-sm border border-slate-200 bg-slate-50/50 pl-9 pr-4 py-1.5 rounded-lg focus:ring-2 focus:ring-blue-100"
+          />
+        </div>
+
+        <div className="flex gap-2 w-full md:w-auto">
+          <select 
+            value={selectedDept}
+            onChange={e => setSelectedDept(e.target.value)}
+            className="text-xs border border-slate-200 p-2 rounded-lg bg-white font-medium"
+          >
+            <option value="All">Все департаменты</option>
+            {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+          </select>
+
+          <select 
+            value={selectedPriority}
+            onChange={e => setSelectedPriority(e.target.value)}
+            className="text-xs border border-slate-200 p-2 rounded-lg bg-white font-medium"
+          >
+            <option value="All">Все приоритеты</option>
+            <option value="urgent">Срочно</option>
+            <option value="high">Высокий</option>
+            <option value="medium">Средний</option>
+            <option value="low">Низкий</option>
+          </select>
+        </div>
       </div>
 
-      {isAdding && (
-        <form onSubmit={handleAdd} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row gap-4">
-          <input 
-            autoFocus
-            type="text" 
-            placeholder="Что нужно сделать?" 
-            value={newTitle}
-            onChange={e => setNewTitle(e.target.value)}
-            className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="flex flex-col sm:flex-row gap-2">
-            <select 
-              value={newPriority} 
-              onChange={e => setNewPriority(e.target.value as any)}
-              className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="low">Низкий приоритет</option>
-              <option value="medium">Средний приоритет</option>
-              <option value="high">Высокий приоритет</option>
-              <option value="urgent">Срочно</option>
-            </select>
-            <div className="flex gap-2">
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">Сохранить</button>
-              <button type="button" onClick={() => setIsAdding(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg">Отмена</button>
+      {/* Add Task Modal overlay */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <form onSubmit={handleAdd} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl max-w-xl w-full space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base font-display">Постановка нового поручения</h3>
+              <button type="button" onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">Закрыть</button>
             </div>
-          </div>
-        </form>
-      )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
-        {tasks.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">Нет активных поручений.</div>
-        ) : (
-          tasks.map(task => (
-            <div key={task.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => updateTaskStatus(task.id, task.status === 'completed' ? 'pending' : 'completed')}
-                  className={`${task.status === 'completed' ? 'text-blue-600' : 'text-slate-300 hover:text-slate-400'} cursor-pointer`}
-                >
-                  {task.status === 'completed' ? <CheckCircle2 size={24} /> : <Circle size={24} />}
-                </button>
-                <div className={`flex flex-col ${task.status === 'completed' ? 'opacity-50' : ''}`}>
-                  <span className={`font-medium ${task.status === 'completed' ? 'line-through text-slate-500' : 'text-slate-900'}`}>{task.title}</span>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-slate-500 font-medium">
-                    {task.priority && (
-                      <span className={`flex items-center gap-1 ${task.priority === 'urgent' ? 'text-red-600' : ''}`}>
-                        <AlertTriangle size={14} />
-                        {task.priority.toUpperCase()}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Clock size={14} />
-                      {new Date(task.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Краткая формулировка поручения</label>
+                <input 
+                  type="text" required autoFocus
+                  placeholder="Например: Согласовать финансовую ведомость..."
+                  value={newTitle}
+                  onChange={e => setNewTitle(e.target.value)}
+                  className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Детальное описание / Инструкции</label>
+                <textarea 
+                  rows={2}
+                  placeholder="Укажите подробный план действий..."
+                  value={newDesc}
+                  onChange={e => setNewDesc(e.target.value)}
+                  className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Приоритет</label>
+                  <select 
+                    value={newPriority}
+                    onChange={e => setNewPriority(e.target.value as any)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-white font-medium"
+                  >
+                    <option value="low">Низкий (Low)</option>
+                    <option value="medium">Средний (Medium)</option>
+                    <option value="high">Высокий (High)</option>
+                    <option value="urgent">Срочно (Urgent)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Департамент</label>
+                  <select 
+                    value={newDept}
+                    onChange={e => setNewDept(e.target.value)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-white font-medium"
+                  >
+                    {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Исполнитель (ФИО)</label>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Ахмедов У.М."
+                    value={newAssignee}
+                    onChange={e => setNewAssignee(e.target.value)}
+                    className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Крайний срок (Дедлайн)</label>
+                  <input 
+                    type="date"
+                    value={newDeadline}
+                    onChange={e => setNewDeadline(e.target.value)}
+                    className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                  />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider
-                  ${task.status === 'pending' ? 'bg-amber-100 text-amber-700' : ''}
-                  ${task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : ''}
-                  ${task.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : ''}
-                  ${task.status === 'overdue' ? 'bg-red-100 text-red-700' : ''}
-                `}>
-                  {task.status.replace('_', ' ')}
-                </span>
-              </div>
             </div>
-          ))
-        )}
-      </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button 
+                type="button" 
+                onClick={() => setShowAddModal(false)}
+                className="bg-slate-100 hover:bg-slate-250 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                ОТМЕНА
+              </button>
+              <button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                СОЗДАТЬ И ВНЕСТИ В СЭД
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Main Table View */}
+      {viewMode === 'table' ? (
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200/80 text-[10px] text-slate-400 uppercase font-bold tracking-wider font-display">
+                <th className="py-3 px-4 w-12 text-center">Статус</th>
+                <th className="py-3 px-4">Поручение / Инструкции</th>
+                <th className="py-3 px-4">Ответственный ведомства</th>
+                <th className="py-3 px-4">Приоритет</th>
+                <th className="py-3 px-4">Дедлайн</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 italic-stripes text-xs">
+              {filteredTasks.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-slate-400">Активных поручений по критериям фильтра не найдено.</td>
+                </tr>
+              ) : (
+                filteredTasks.map(task => (
+                  <tr key={task.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3 px-4 text-center">
+                      <select 
+                        value={task.status}
+                        onChange={e => updateTaskStatus(task.id, e.target.value as any)}
+                        className={`text-[9px] font-bold p-1 rounded-md uppercase border ${task.status === 'completed' ? 'bg-emerald-50 text-emerald-800' : task.status === 'in_progress' ? 'bg-blue-50 text-blue-800' : task.status === 'overdue' ? 'bg-rose-50 text-rose-800' : 'bg-slate-100'}`}
+                      >
+                        <option value="pending">Ожидает</option>
+                        <option value="in_progress">В работе</option>
+                        <option value="completed">Готово</option>
+                        <option value="overdue">Сорвано</option>
+                      </select>
+                    </td>
+                    <td className="py-3 px-4 max-w-sm">
+                      <div className="space-y-0.5">
+                        <span className={`font-semibold block ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</span>
+                        {task.description && <span className="text-[10px] text-slate-400 block line-clamp-1">{task.description}</span>}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-slate-700 block">{task.assignee}</span>
+                        <span className="text-[9px] text-slate-400 block">{task.department}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase tracking-wider ${task.priority === 'urgent' ? 'bg-rose-100 text-rose-800' : task.priority === 'high' ? 'bg-amber-100 text-amber-800' : 'bg-slate-150 text-slate-600'}`}>
+                        {task.priority?.toUpperCase() || 'MEDIUM'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`font-mono text-[10px] ${task.status === 'overdue' ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>{task.deadline || 'Без срока'}</span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* Kanban View */
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+          {kanbanColumns.map(col => {
+            const colTasks = filteredTasks.filter(t => t.status === col.id);
+            return (
+              <div key={col.id} className="bg-[#FAFBFD]/80 rounded-xl border border-slate-200 shadow-sm p-4 h-[550px] overflow-auto flex flex-col space-y-3">
+                <div className={`p-2.5 rounded-lg border-t-4 text-xs font-bold uppercase flex justify-between items-center ${col.color}`}>
+                  <span>{col.title}</span>
+                  <span className="bg-white/80 border border-slate-300 p-1 text-[9px] rounded leading-none">{colTasks.length}</span>
+                </div>
+
+                <div className="flex-1 space-y-3 overflow-y-auto">
+                  {colTasks.length === 0 ? (
+                    <div className="h-20 border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-[10px] text-center p-3">Нет задач в этой категории.</div>
+                  ) : (
+                    colTasks.map(task => (
+                      <div key={task.id} className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs space-y-2 group hover:shadow-sm">
+                        <div className="flex justify-between items-start gap-1">
+                          <span className="text-[10px] font-bold text-slate-700 leading-tight block">{task.title}</span>
+                          <button 
+                            onClick={() => {
+                              // Cycle task status
+                              const cycleMap: Record<Task['status'], Task['status']> = {
+                                'pending': 'in_progress',
+                                'in_progress': 'completed',
+                                'completed': 'overdue',
+                                'overdue': 'pending'
+                              };
+                              updateTaskStatus(task.id, cycleMap[task.status]);
+                            }}
+                            className="text-[9px] text-blue-600 hover:underline font-bold tracking-tighter"
+                            title="Сменить статус"
+                          >
+                            СМЕНИТЬ
+                          </button>
+                        </div>
+                        {task.description && <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">{task.description}</p>}
+                        
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-[9px] font-bold text-slate-400">
+                          <span className="truncate max-w-[90px] text-slate-600">👤 {task.assignee}</span>
+                          <span className="text-slate-500 font-mono">📅 {task.deadline}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
