@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    function isValidTask(data, userId) {
+      return data.keys().hasAll(['title', 'status', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 200
+        && data.status is string && data.status.matches('^(pending|in_progress|completed|overdue)$')
+        && data.userId == userId
+        && data.createdAt is int
+        && data.updatedAt is int
+        && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 10000))
+        && (!data.keys().hasAny(['source']) || (data.source is string && data.source.size() <= 200))
+        && (!data.keys().hasAny(['assignee']) || (data.assignee is string && data.assignee.size() <= 200))
+        && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 200))
+        && (!data.keys().hasAny(['deadline']) || (data.deadline is string && data.deadline.size() <= 200))
+        && (!data.keys().hasAny(['priority']) || (data.priority is string && data.priority.matches('^(low|medium|high|urgent)$')))
+        && (!data.keys().hasAny(['risk']) || (data.risk is string && data.risk.size() <= 1000));
+    }
+
+    function isValidMeeting(data, userId) {
+      return data.keys().hasAll(['title', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 200
+        && data.userId == userId
+        && data.createdAt is int
+        && data.updatedAt is int
+        && (!data.keys().hasAny(['date']) || (data.date is string && data.date.size() <= 100))
+        && (!data.keys().hasAny(['agenda']) || (data.agenda is string && data.agenda.size() <= 10000))
+        && (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 100000))
+        && (!data.keys().hasAny(['participants']) || (data.participants is list && data.participants.size() <= 100 && (data.participants.size() == 0 || data.participants[0] is string)))
+        && (!data.keys().hasAny(['decisions']) || (data.decisions is list && data.decisions.size() <= 100 && (data.decisions.size() == 0 || data.decisions[0] is string)));
+    }
+
+    function isValidLetter(data, userId) {
+      return data.keys().hasAll(['subject', 'status', 'userId', 'createdAt', 'updatedAt'])
+        && data.subject is string && data.subject.size() <= 500
+        && data.status is string && data.status.matches('^(draft|ready|sent)$')
+        && data.userId == userId
+        && data.createdAt is int
+        && data.updatedAt is int
+        && (!data.keys().hasAny(['bodyUzbek']) || (data.bodyUzbek is string && data.bodyUzbek.size() <= 100000))
+        && (!data.keys().hasAny(['instructionsRu']) || (data.instructionsRu is string && data.instructionsRu.size() <= 100000))
+        && (!data.keys().hasAny(['recipient']) || (data.recipient is string && data.recipient.size() <= 500));
+    }
+
+    function isValidReport(data, userId) {
+      return data.keys().hasAll(['title', 'status', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 500
+        && data.status is string && data.status.matches('^(pending|submitted|approved)$')
+        && data.userId == userId
+        && data.createdAt is int
+        && data.updatedAt is int
+        && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 200))
+        && (!data.keys().hasAny(['summary']) || (data.summary is string && data.summary.size() <= 100000));
+    }
+
+    match /users/{userId} {
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(taskId)
+          && isValidTask(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(taskId)
+          && isValidTask(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId);
+      }
+
+      match /meetings/{meetingId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(meetingId)
+          && isValidMeeting(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(meetingId)
+          && isValidMeeting(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId);
+      }
+
+      match /letters/{letterId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(letterId)
+          && isValidLetter(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(letterId)
+          && isValidLetter(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId);
+      }
+
+      match /reports/{reportId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(reportId)
+          && isValidReport(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(reportId)
+          && isValidReport(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

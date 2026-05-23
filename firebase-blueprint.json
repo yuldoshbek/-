@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "Executive tasks and assignments",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "source": { "type": "string" },
+        "assignee": { "type": "string" },
+        "department": { "type": "string" },
+        "deadline": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in_progress", "completed", "overdue"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+        "risk": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number", "description": "Timestamp" },
+        "updatedAt": { "type": "number", "description": "Timestamp" }
+      },
+      "required": ["title", "status", "userId", "createdAt", "updatedAt"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "Meeting records and protocols",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "agenda": { "type": "string" },
+        "notes": { "type": "string" },
+        "decisions": { "type": "array", "items": { "type": "string" } },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["title", "userId", "createdAt", "updatedAt"]
+    },
+    "Letter": {
+      "title": "Letter",
+      "description": "Official letters draft and management",
+      "type": "object",
+      "properties": {
+        "subject": { "type": "string" },
+        "bodyUzbek": { "type": "string" },
+        "instructionsRu": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "ready", "sent"] },
+        "recipient": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["subject", "status", "userId", "createdAt", "updatedAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Reports tracking",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "submitted", "approved"] },
+        "department": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["title", "status", "userId", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User's tasks"
+    },
+    "users/{userId}/meetings/{meetingId}": {
+      "schema": "Meeting",
+      "description": "User's meetings"
+    },
+    "users/{userId}/letters/{letterId}": {
+      "schema": "Letter",
+      "description": "User's letters"
+    },
+    "users/{userId}/reports/{reportId}": {
+      "schema": "Report",
+      "description": "User's reports"
+    }
+  }
+}

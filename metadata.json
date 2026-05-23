@@ -1,0 +1,6 @@
+{
+  "name": "Executive Control Center",
+  "description": "Executive OS for CRM Uzbekistan to manage tasks, meetings, letters, and reports with an embedded AI assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
