@@ -27,7 +27,7 @@ export default function Meetings() {
       if (res.ok) {
         setResult(data);
       } else {
-        alert(data.error || 'Failed to process');
+        alert(data.error || 'Ошибка при обработке');
       }
     } catch (e) {
       console.error(e);
@@ -45,10 +45,10 @@ export default function Meetings() {
         priority: 'medium',
         assignee: task.assignee,
         deadline: task.deadline,
-        source: 'Meeting Protocol'
+        source: 'Протокол встречи'
       });
     }
-    alert('Tasks added successfully!');
+    alert('Задачи успешно добавлены!');
   };
 
   return (
@@ -57,7 +57,7 @@ export default function Meetings() {
         <CalendarIcon className="text-blue-600" size={28} />
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Встречи и Протоколы</h1>
-          <p className="text-slate-500 mt-1">Generate protocols and extract tasks instantly</p>
+          <p className="text-slate-500 mt-1">Автоматическое создание протоколов и извлечение задач</p>
         </div>
       </div>
 
@@ -75,7 +75,7 @@ export default function Meetings() {
             <button 
               onClick={handleGenerate}
               disabled={generating || !notes.trim()}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-lg font-medium transition-colors cursor-pointer"
             >
               <Sparkles size={18} className={generating ? 'animate-pulse' : ''} />
               {generating ? 'Анализ...' : 'Сформировать Протокол'}
@@ -104,7 +104,7 @@ export default function Meetings() {
               <div>
                 <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
                   <FileText size={16} className="text-slate-400" />
-                  Повестка (Agenda)
+                  Повестка (Kun tartibi)
                 </h3>
                 <p className="text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">{result.agenda}</p>
               </div>
@@ -112,7 +112,7 @@ export default function Meetings() {
               <div>
                 <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
                   <Users size={16} className="text-slate-400" />
-                  Принятые Решения
+                  Принятые решения (Qarorlar)
                 </h3>
                 <ul className="space-y-2">
                   {result.decisions?.map((decision, i) => (
@@ -128,14 +128,14 @@ export default function Meetings() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                     <Clock size={16} className="text-slate-400" />
-                    Поручения (Задачи)
+                    Поручения (Topshiriqlar)
                   </h3>
                   {result.tasks && result.tasks.length > 0 && (
                     <button 
                       onClick={handleCreateTasks}
-                      className="text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                      className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      <Plus size={14} /> Send to Tracker
+                      <Plus size={14} /> Добавить в Трекер
                     </button>
                   )}
                 </div>

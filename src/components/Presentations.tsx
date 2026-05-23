@@ -68,7 +68,7 @@ export default function Presentations() {
           <Presentation className="text-blue-600" size={28} />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Презентации (Taqdimotlar)</h1>
-            <p className="text-slate-500 mt-1">Manage and generate Google Slides</p>
+            <p className="text-slate-500 mt-1">Управление и создание Google Slides</p>
           </div>
         </div>
         <button 
@@ -104,7 +104,7 @@ export default function Presentations() {
                   <div>
                     <span className="font-semibold text-slate-900 block">{slide.name}</span>
                     <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                      Updated: {new Date(slide.modifiedTime).toLocaleDateString()}
+                      Обновлено: {new Date(slide.modifiedTime).toLocaleDateString()}
                     </span>
                   </div>
                 </div>

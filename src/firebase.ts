@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -21,12 +21,12 @@ let isSigningIn = false;
 let cachedAccessToken: string | null = null;
 
 export const initAuth = (
-  onAuthSuccess?: (user: User, token: string) => void,
+  onAuthSuccess?: (user: User, token: string | null) => void,
   onAuthFailure?: () => void
 ) => {
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
-      if (cachedAccessToken) {
+      if (cachedAccessToken || user.isAnonymous) {
         if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
       } else if (!isSigningIn) {
         cachedAccessToken = null;
@@ -52,6 +52,17 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
   } catch (error: any) {
     console.error('Sign in error:', error);
     throw error;
+  } finally {
+    isSigningIn = false;
+  }
+};
+
+export const guestSignIn = async (): Promise<void> => {
+  try {
+    isSigningIn = true;
+    await signInAnonymously(auth);
+  } catch (error) {
+    console.error('Guest sign in error:', error);
   } finally {
     isSigningIn = false;
   }

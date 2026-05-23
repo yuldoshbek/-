@@ -26,7 +26,7 @@ export default function Reports() {
       if (res.ok) {
         setResult(data);
       } else {
-        alert(data.error || 'Failed to process report');
+        alert(data.error || 'Ошибка при обработке отчета');
       }
     } catch (e) {
       console.error(e);
@@ -41,7 +41,7 @@ export default function Reports() {
         <FileText className="text-blue-600" size={28} />
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Отчеты (Executive Summary)</h1>
-          <p className="text-slate-500 mt-1">Compress long reports into actionable intelligence</p>
+          <p className="text-slate-500 mt-1">Преобразование длинных отчетов в краткую выжимку</p>
         </div>
       </div>
 
@@ -59,7 +59,7 @@ export default function Reports() {
             <button 
               onClick={handleGenerate}
               disabled={generating || !reportText.trim()}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-5 py-2.5 rounded-lg font-medium transition-colors cursor-pointer"
             >
               <Sparkles size={18} className={generating ? 'animate-pulse' : ''} />
               {generating ? 'Анализ...' : 'Сделать Выжимку'}
@@ -68,7 +68,7 @@ export default function Reports() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col overflow-hidden">
-          <h2 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-4 border-b border-slate-100 pb-2">Intelligence Briefing</h2>
+          <h2 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-4 border-b border-slate-100 pb-2">Сводка (Briefing)</h2>
           
           {!result && !generating && (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-6 text-center">

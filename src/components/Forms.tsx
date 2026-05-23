@@ -71,7 +71,7 @@ export default function Forms() {
           <FormInput className="text-blue-600" size={28} />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Опросы (So'rovnomalar)</h1>
-            <p className="text-slate-500 mt-1">Manage and generate Google Forms</p>
+            <p className="text-slate-500 mt-1">Управление и создание опросов Google Forms</p>
           </div>
         </div>
         <button 
@@ -86,7 +86,7 @@ export default function Forms() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50">
-          <h2 className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Последние формы (Recent)</h2>
+          <h2 className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Последние опросы (Recent)</h2>
         </div>
         
         {loading ? (
@@ -107,7 +107,7 @@ export default function Forms() {
                   <div>
                     <span className="font-semibold text-slate-900 block">{form.name}</span>
                     <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                      Updated: {new Date(form.modifiedTime).toLocaleDateString()}
+                      Обновлено: {new Date(form.modifiedTime).toLocaleDateString()}
                     </span>
                   </div>
                 </div>

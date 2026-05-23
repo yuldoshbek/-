@@ -130,7 +130,7 @@ export default function GoogleTasks() {
           <CheckSquare className="text-blue-600" size={28} />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Google Tasks</h1>
-            <p className="text-slate-500 mt-1">Manage your synced tasks</p>
+            <p className="text-slate-500 mt-1">Управление синхронизированными задачами</p>
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function GoogleTasks() {
               </button>
             ))}
             {taskLists.length === 0 && !loading && (
-              <div className="p-4 text-center text-slate-400 text-sm">No lists found</div>
+              <div className="p-4 text-center text-slate-400 text-sm">Нет списков</div>
             )}
           </div>
         </div>
