@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   FileCheck2, 
   Search, 
@@ -10,46 +10,11 @@ import {
   X, 
   Download 
 } from 'lucide-react';
-
-interface ApprovalRequest {
-  id: string;
-  documentTitle: string;
-  documentType: 'Письмо' | 'Отчет' | 'Протокол' | 'Распоряжение';
-  applicant: string;
-  status: 'pending' | 'approved' | 'rejected';
-  urgency: 'routine' | 'urgent' | 'critical';
-  appointedSigners: string[];
-  currentSignerIndex: number;
-}
-
-const defaultApprovals: ApprovalRequest[] = [
-  {
-    id: 'app-1',
-    documentTitle: 'Запрос на субсидирование логистических расходов ООО "КаргоЛинк"',
-    documentType: 'Письмо',
-    applicant: 'Туляганов Д.Х. (Департамент логистики)',
-    status: 'pending',
-    urgency: 'urgent',
-    appointedSigners: ['Каримова Н.М. (Минфинансы)', 'Юсупов А.Т. (Генеральный директор)'],
-    currentSignerIndex: 0
-  },
-  {
-    id: 'app-2',
-    documentTitle: 'Квартальный баланс капитальных расходов цеха ТМК',
-    documentType: 'Отчет',
-    applicant: 'Каримова Н.М. (Финансовый департамент)',
-    status: 'approved',
-    urgency: 'routine',
-    appointedSigners: ['Юсупов А.Т. (Генеральный директор)'],
-    currentSignerIndex: 1
-  }
-];
+import { useApprovals } from '../lib/hooks';
+import { ApprovalRequest } from '../types';
 
 export default function Approvals() {
-  const [approvals, setApprovals] = useState<ApprovalRequest[]>(() => {
-    const saved = localStorage.getItem('tmk_approvals');
-    return saved ? JSON.parse(saved) : defaultApprovals;
-  });
+  const { approvals, addApproval, signApprovalStep } = useApprovals();
 
   const [showAdd, setShowAdd] = useState(false);
   const [docTitle, setDocTitle] = useState('');
@@ -57,16 +22,11 @@ export default function Approvals() {
   const [applicant, setApplicant] = useState('');
   const [urgency, setUrgency] = useState<ApprovalRequest['urgency']>('routine');
 
-  useEffect(() => {
-    localStorage.setItem('tmk_approvals', JSON.stringify(approvals));
-  }, [approvals]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!docTitle.trim() || !applicant.trim()) return;
 
-    const fresh: ApprovalRequest = {
-      id: `app-${Date.now()}`,
+    addApproval({
       documentTitle: docTitle.trim(),
       documentType: docType,
       applicant: applicant.trim(),
@@ -74,31 +34,15 @@ export default function Approvals() {
       urgency,
       appointedSigners: ['Каримова Н.М.', 'Юсупов А.Т.'],
       currentSignerIndex: 0
-    };
+    });
 
-    setApprovals([fresh, ...approvals]);
     setDocTitle('');
     setApplicant('');
     setShowAdd(false);
   };
 
   const handleSignAction = (id: string, action: 'approve' | 'reject') => {
-    setApprovals(approvals.map(app => {
-      if (app.id === id) {
-        if (action === 'reject') {
-          return { ...app, status: 'rejected' };
-        } else {
-          const nextIndex = app.currentSignerIndex + 1;
-          const isFullyApproved = nextIndex >= app.appointedSigners.length;
-          return {
-            ...app,
-            currentSignerIndex: nextIndex,
-            status: isFullyApproved ? 'approved' : 'pending'
-          };
-        }
-      }
-      return app;
-    }));
+    signApprovalStep(id, action);
   };
 
   return (

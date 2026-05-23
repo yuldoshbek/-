@@ -9,36 +9,13 @@ import {
   FileText, 
   ExternalLink 
 } from 'lucide-react';
-
-interface GuideItem {
-  id: string;
-  title: string;
-  category: 'Документооборот' | 'Шаблоны' | 'Правила ТМК' | 'Инструкции';
-  summary: string;
-  content: string;
-}
-
-const initialGuides: GuideItem[] = [
-  {
-    id: 'kb-1',
-    title: 'Регламент прохождения служебных писем',
-    category: 'Документооборот',
-    summary: 'Инструкция о порядке согласования исходящих запросов в хокимияты и ведомства.',
-    content: 'Все официальные запросы должны проходить трехуровневое согласование: 1. Ответственный исполнитель департамента, 2. Юридический советник, 3. Председатель Администрации. Ответственность за задержку свыше 48 часов влечет вычет КПЭ.'
-  },
-  {
-    id: 'kb-2',
-    title: 'Стандарт форматирования протоколов коллегиальных встреч',
-    category: 'Шаблоны',
-    summary: 'Типовой печатный макет и разметка Minutes of Meetings (MoM).',
-    content: 'Протокол оформляется по ГОСТ 6.30-2003. Обязательно указывается дата проведения, состав присутствующих членов, председательствующий и формулируется таблица поручений с дедлайнами.'
-  }
-];
+import { useGuides } from '../lib/hooks';
+import { GuideItem } from '../types';
 
 export default function KnowledgeBase() {
-  const [guides, setGuides] = useState<GuideItem[]>(initialGuides);
+  const { guides, addGuide } = useGuides();
   const [search, setSearch] = useState('');
-  const [activeGuide, setActiveGuide] = useState<GuideItem | null>(initialGuides[0]);
+  const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
 
   // New states
@@ -47,20 +24,19 @@ export default function KnowledgeBase() {
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
 
+  const activeGuide = guides.find(g => g.id === activeGuideId) || guides[0] || null;
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
 
-    const fresh: GuideItem = {
-      id: `kb-${Date.now()}`,
+    addGuide({
       title: title.trim(),
       category,
       summary: summary.trim() || 'Краткое содержание отсутствует.',
       content: content.trim()
-    };
+    });
 
-    setGuides([...guides, fresh]);
-    setActiveGuide(fresh);
     setTitle('');
     setContent('');
     setSummary('');
@@ -108,7 +84,7 @@ export default function KnowledgeBase() {
                 type="button"
                 key={g.id}
                 onClick={() => {
-                  setActiveGuide(g);
+                  setActiveGuideId(g.id);
                   setShowAdd(false);
                 }}
                 className={`w-full text-left p-4 rounded-xl border transition-all ${activeGuide?.id === g.id ? 'bg-teal-50/70 border-teal-200 text-teal-950' : 'bg-white border-slate-200'}`}

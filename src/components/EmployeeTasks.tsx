@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Users, 
   Search, 
@@ -13,76 +13,11 @@ import {
   UserPlus, 
   FileCheck2 
 } from 'lucide-react';
-
-interface EmployeeTask {
-  id: string;
-  employeeName: string;
-  role: string;
-  department: string;
-  taskTitle: string;
-  status: 'active' | 'completed' | 'overdue';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  deadline: string;
-  kpiImpact: number;
-  comments: string[];
-}
-
-const initialEmployeeTasks: EmployeeTask[] = [
-  {
-    id: 'emp-t-1',
-    employeeName: 'Ахмедов Рустам',
-    role: 'Ведущий инженер',
-    department: 'Департамент IT и цифровизации',
-    taskTitle: 'Проверить интеграцию почты в СЭД по новому API',
-    status: 'active',
-    priority: 'high',
-    deadline: '2026-05-26',
-    kpiImpact: 15,
-    comments: ['Логи на сервере чистые', 'Ожидаем подтверждения токена ГТК']
-  },
-  {
-    id: 'emp-t-2',
-    employeeName: 'Кадырова Малика',
-    role: 'Старший экономист',
-    department: 'Финансовый департамент',
-    taskTitle: 'Сверить расчеты по НДС за 1-й квартал с налоговой',
-    status: 'completed',
-    priority: 'high',
-    deadline: '2026-05-20',
-    kpiImpact: 20,
-    comments: ['Акт сверки подписан', 'Разрешений больше не требуется']
-  },
-  {
-    id: 'emp-t-3',
-    employeeName: 'Юсупов Тимур',
-    role: 'Менеджер по закупкам',
-    department: 'Департамент логистики и закупок',
-    taskTitle: 'Оформить заявки на растаможку трубной партии №44',
-    status: 'overdue',
-    priority: 'critical',
-    deadline: '2026-05-22',
-    kpiImpact: 25,
-    comments: ['Таможня задерживает досмотр - ждем содействия']
-  },
-  {
-    id: 'emp-t-4',
-    employeeName: 'Сабиров Алишер',
-    role: 'Аналитик СЭД',
-    department: 'Аналитический сектор',
-    taskTitle: 'Подготовить аналитический срез по просрочкам в майских задачах',
-    status: 'active',
-    priority: 'medium',
-    deadline: '2026-05-27',
-    kpiImpact: 10,
-    comments: []
-  }
-];
+import { useEmployeeTasks } from '../lib/hooks';
+import { EmployeeTask } from '../types';
 
 export default function EmployeeTasks() {
-  const [tasks, setTasks] = useState<EmployeeTask[]>(() => {
-    const saved = localStorage.getItem('tmk_employee_tasks');
-    return saved ? JSON.parse(saved) : initialEmployeeTasks;
-  });
+  const { employeeTasks: tasks, addEmployeeTask, updateEmployeeTask } = useEmployeeTasks();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('Все');
@@ -99,18 +34,13 @@ export default function EmployeeTasks() {
   const [deadline, setDeadline] = useState('');
   const [kpiImpact, setKpiImpact] = useState(10);
 
-  useEffect(() => {
-    localStorage.setItem('tmk_employee_tasks', JSON.stringify(tasks));
-  }, [tasks]);
-
   const departments = ['Все', 'Департамент IT и цифровизации', 'Финансовый департамент', 'Департамент логистики и закупок', 'Аналитический сектор'];
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeName.trim() || !taskTitle.trim() || !deadline) return;
 
-    const newTask: EmployeeTask = {
-      id: `emp-t-${Date.now()}`,
+    addEmployeeTask({
       employeeName,
       role: role || 'Специалист',
       department,
@@ -120,9 +50,8 @@ export default function EmployeeTasks() {
       deadline,
       kpiImpact,
       comments: []
-    };
+    });
 
-    setTasks([newTask, ...tasks]);
     setEmployeeName('');
     setRole('');
     setTaskTitle('');
@@ -132,19 +61,19 @@ export default function EmployeeTasks() {
   };
 
   const handleStatusChange = (id: string, status: 'active' | 'completed' | 'overdue') => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, status } : t));
+    updateEmployeeTask(id, { status });
   };
 
   const handleAddComment = (id: string) => {
     const comment = commentInput[id];
     if (!comment || !comment.trim()) return;
 
-    setTasks(tasks.map(t => {
-      if (t.id === id) {
-        return { ...t, comments: [...t.comments, comment.trim()] };
-      }
-      return t;
-    }));
+    const currentTask = tasks.find(t => t.id === id);
+    if (currentTask) {
+      updateEmployeeTask(id, {
+        comments: [...currentTask.comments, comment.trim()]
+      });
+    }
 
     setCommentInput({ ...commentInput, [id]: '' });
   };

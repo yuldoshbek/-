@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   ShieldCheck, 
   Search, 
@@ -10,46 +10,11 @@ import {
   CheckCircle2, 
   Sparkles 
 } from 'lucide-react';
-
-interface Decision {
-  id: string;
-  referenceNo: string;
-  title: string;
-  category: 'Стратегическое' | 'Кадровое' | 'Финансовое' | 'Организационное';
-  date: string;
-  signer: string;
-  status: 'Действует' | 'Архив' | 'Пересмотрено';
-  summary: string;
-}
-
-const defaultDecisions: Decision[] = [
-  {
-    id: 'dec-1',
-    referenceNo: 'Р-41/2026',
-    title: 'О внедрении цифровой СЭД на базе ИИ-ассистентов ТМК',
-    category: 'Стратегическое',
-    date: '2026-05-10',
-    signer: 'Юсупов А.Т. (Генеральный директор)',
-    status: 'Действует',
-    summary: 'Решение предписывает всем руководителям секторов интегрировать персональные папки Google Drive с общим СЭД контуром для автоматического аудита просрочек.'
-  },
-  {
-    id: 'dec-2',
-    referenceNo: 'Р-39/2026',
-    title: 'Утверждение бюджета на ремонт Кабельного цеха Яллама',
-    category: 'Финансовое',
-    date: '2026-05-02',
-    signer: 'Каримова Н.М. (Финансовый директор)',
-    status: 'Действует',
-    summary: 'Выделение целевого взноса ведомства под реализацию защитного кожуха высоковольтных линий.'
-  }
-];
+import { useDecisions } from '../lib/hooks';
+import { Decision } from '../types';
 
 export default function Decisions() {
-  const [decisions, setDecisions] = useState<Decision[]>(() => {
-    const saved = localStorage.getItem('tmk_decisions');
-    return saved ? JSON.parse(saved) : defaultDecisions;
-  });
+  const { decisions, addDecision, updateDecisionStatus } = useDecisions();
 
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Все');
@@ -63,16 +28,11 @@ export default function Decisions() {
   const [signer, setSigner] = useState('Юсупов А.Т.');
   const [summary, setSummary] = useState('');
 
-  useEffect(() => {
-    localStorage.setItem('tmk_decisions', JSON.stringify(decisions));
-  }, [decisions]);
-
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !refNo.trim()) return;
 
-    const fresh: Decision = {
-      id: `dec-${Date.now()}`,
+    addDecision({
       referenceNo: refNo,
       title: title.trim(),
       category,
@@ -80,9 +40,8 @@ export default function Decisions() {
       signer,
       status: 'Действует',
       summary: summary.trim() || 'Текст решения утвержден уполномоченными членами правления.'
-    };
+    });
 
-    setDecisions([fresh, ...decisions]);
     setRefNo('');
     setTitle('');
     setSummary('');
@@ -90,7 +49,7 @@ export default function Decisions() {
   };
 
   const handleStatusChange = (id: string, status: Decision['status']) => {
-    setDecisions(decisions.map(d => d.id === id ? { ...d, status } : d));
+    updateDecisionStatus(id, status);
   };
 
   const filtered = decisions.filter(d => {

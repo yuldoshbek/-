@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Bell, 
   Search, 
@@ -9,59 +9,39 @@ import {
   Clock, 
   Sliders 
 } from 'lucide-react';
-
-interface RemindItem {
-  id: string;
-  text: string;
-  datetime: string;
-  method: 'SMS' | 'Telegram' | 'Sber-Push' | 'Email';
-  status: 'pending' | 'sent';
-}
-
-const mockReminders: RemindItem[] = [
-  { id: 'rem-1', text: 'Собрать КПЭ-справку со 2-го сектора управления', datetime: '2026-05-24T10:00', method: 'Telegram', status: 'pending' },
-  { id: 'rem-2', text: 'Позвонить в Минфин касательно транша по Технопарку', datetime: '2026-05-25T14:30', method: 'SMS', status: 'pending' }
-];
+import { useReminders } from '../lib/hooks';
+import { RemindItem } from '../types';
 
 export default function Reminders() {
-  const [reminders, setReminders] = useState<RemindItem[]>(() => {
-    const saved = localStorage.getItem('tmk_reminders');
-    return saved ? JSON.parse(saved) : mockReminders;
-  });
+  const { reminders, addReminder, updateReminderStatus, deleteReminder } = useReminders();
 
   const [text, setText] = useState('');
   const [datetime, setDatetime] = useState('');
   const [method, setMethod] = useState<RemindItem['method']>('Telegram');
   const [showAdd, setShowAdd] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem('tmk_reminders', JSON.stringify(reminders));
-  }, [reminders]);
-
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !datetime) return;
 
-    const fresh: RemindItem = {
-      id: `rem-${Date.now()}`,
+    addReminder({
       text: text.trim(),
       datetime,
       method,
       status: 'pending'
-    };
+    });
 
-    setReminders([fresh, ...reminders]);
     setText('');
     setDatetime('');
     setShowAdd(false);
   };
 
   const handleComplete = (id: string) => {
-    setReminders(reminders.map(r => r.id === id ? { ...r, status: 'sent' } : r));
+    updateReminderStatus(id, 'sent');
   };
 
   const handleDelete = (id: string) => {
-    setReminders(reminders.filter(r => r.id !== id));
+    deleteReminder(id);
   };
 
   return (

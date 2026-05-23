@@ -15,16 +15,8 @@ import {
   FileText 
 } from 'lucide-react';
 import { getAccessToken } from '../firebase';
-
-interface KeepNote {
-  id: string;
-  title: string;
-  content: string;
-  color: string;
-  tag: string;
-  isPinned: boolean;
-  updatedAt: string;
-}
+import { useKeepNotes } from '../lib/hooks';
+import { KeepNote } from '../types';
 
 const colorsList = [
   { name: 'default', bg: 'bg-white border-slate-200' },
@@ -39,45 +31,7 @@ const colorsList = [
 const tagsList = ['Все', 'Поручения', 'Личные бумаги', 'Идеи', 'Архив', 'Решения', 'Проекты'];
 
 export default function GoogleKeep() {
-  const [notes, setNotes] = useState<KeepNote[]>(() => {
-    const saved = localStorage.getItem('executive_keep_notes');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return [
-      {
-        id: 'n-1',
-        title: 'Ускорить таможенный контроль труб',
-        content: 'Срочно направить ноту председателю ГТК по ведомственному СЭД. Поручение логистическому департаменту на контроль.',
-        color: 'yellow',
-        tag: 'Поручения',
-        isPinned: true,
-        updatedAt: new Date().toLocaleDateString()
-      },
-      {
-        id: 'n-2',
-        title: 'Заседание Кабмина в среду в 15:00',
-        content: 'Анализ готовности отчетов Минэнерго. На подготовку слайдов доклада остается 2 дня.',
-        color: 'blue',
-        tag: 'Проекты',
-        isPinned: true,
-        updatedAt: new Date().toLocaleDateString()
-      },
-      {
-        id: 'n-3',
-        title: 'Идея: Переработать КРI департаментов',
-        content: 'Сделать увязку КРI с ответами граждан по жалобам в госуслугах. Увеличит лояльность ведомств.',
-        color: 'green',
-        tag: 'Идеи',
-        isPinned: false,
-        updatedAt: new Date().toLocaleDateString()
-      }
-    ];
-  });
+  const { notes, addNote: addNoteHook, updateNote: updateNoteHook, deleteNote: deleteNoteHook } = useKeepNotes();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('Все');
@@ -103,26 +57,18 @@ export default function GoogleKeep() {
     checkToken();
   }, []);
 
-  // Save changes locally
-  useEffect(() => {
-    localStorage.setItem('executive_keep_notes', JSON.stringify(notes));
-  }, [notes]);
-
   const addNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() && !newContent.trim()) return;
 
-    const newNote: KeepNote = {
-      id: `note-${Date.now()}`,
+    addNoteHook({
       title: newTitle.trim() || 'Без заголовка',
       content: newContent.trim(),
       color: newColor,
       tag: newTag,
-      isPinned: false,
-      updatedAt: new Date().toLocaleDateString()
-    };
+      isPinned: false
+    });
 
-    setNotes([newNote, ...notes]);
     setNewTitle('');
     setNewContent('');
     setNewColor('default');
@@ -131,16 +77,19 @@ export default function GoogleKeep() {
   const deleteNote = (id: string) => {
     const confirmed = window.confirm('Вы уверены, что хотите удалить эту заметку?');
     if (confirmed) {
-      setNotes(notes.filter(n => n.id !== id));
+      deleteNoteHook(id);
     }
   };
 
   const togglePin = (id: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, isPinned: !n.isPinned } : n));
+    const note = notes.find(n => n.id === id);
+    if (note) {
+      updateNoteHook(id, { isPinned: !note.isPinned });
+    }
   };
 
   const updateColor = (id: string, color: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, color } : n));
+    updateNoteHook(id, { color });
   };
 
   // Direct export to Google Docs in Google Drive

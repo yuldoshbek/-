@@ -67,6 +67,171 @@
         "updatedAt": { "type": "number" }
       },
       "required": ["title", "status", "userId", "createdAt", "updatedAt"]
+    },
+    "EmployeeTask": {
+      "title": "EmployeeTask",
+      "description": "Staff individual assignments",
+      "type": "object",
+      "properties": {
+        "employeeName": { "type": "string" },
+        "role": { "type": "string" },
+        "department": { "type": "string" },
+        "taskTitle": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "completed", "overdue"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "deadline": { "type": "string" },
+        "kpiImpact": { "type": "number" },
+        "comments": { "type": "array", "items": { "type": "string" } },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["employeeName", "taskTitle", "status", "priority", "deadline", "kpiImpact", "userId", "createdAt", "updatedAt"]
+    },
+    "KeepNote": {
+      "title": "KeepNote",
+      "description": "Quick Google Keep-like notes",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "color": { "type": "string" },
+        "tag": { "type": "string" },
+        "isPinned": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "content", "color", "tag", "isPinned", "userId", "createdAt", "updatedAt"]
+    },
+    "Decision": {
+      "title": "Decision",
+      "description": "Board and directorate decisions registry",
+      "type": "object",
+      "properties": {
+        "referenceNo": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Стратегическое", "Кадровое", "Финансовое", "Организационное"] },
+        "date": { "type": "string" },
+        "signer": { "type": "string" },
+        "status": { "type": "string", "enum": ["Действует", "Архив", "Пересмотрено"] },
+        "summary": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["referenceNo", "title", "category", "date", "signer", "status", "summary", "userId", "createdAt", "updatedAt"]
+    },
+    "Risk": {
+      "title": "Risk",
+      "description": "Operational and financial risk compliance mapping",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Финансовый", "Информационный", "Кадровый", "Логистика", "Политический"] },
+        "level": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "mitidgationPlan": { "type": "string" },
+        "reporter": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "mitigated"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["title", "category", "level", "mitidgationPlan", "reporter", "status", "userId", "createdAt", "updatedAt"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "SMS and Telegram notification triggers",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "datetime": { "type": "string" },
+        "method": { "type": "string", "enum": ["SMS", "Telegram", "Sber-Push", "Email"] },
+        "status": { "type": "string", "enum": ["pending", "sent"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["text", "datetime", "method", "status", "userId", "createdAt", "updatedAt"]
+    },
+    "Approval": {
+      "title": "Approval",
+      "description": "Agreement routing workflow requests",
+      "type": "object",
+      "properties": {
+        "documentTitle": { "type": "string" },
+        "documentType": { "type": "string", "enum": ["Письмо", "Отчет", "Протокол", "Распоряжение"] },
+        "applicant": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "urgency": { "type": "string", "enum": ["routine", "urgent", "critical"] },
+        "appointedSigners": { "type": "array", "items": { "type": "string" } },
+        "currentSignerIndex": { "type": "number" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["documentTitle", "documentType", "applicant", "status", "urgency", "appointedSigners", "currentSignerIndex", "userId", "createdAt", "updatedAt"]
+    },
+    "GuideItem": {
+      "title": "GuideItem",
+      "description": "Corporate knowledge base articles and regulations",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Документооборот", "Шаблоны", "Правила ТМК", "Инструкции"] },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["title", "category", "summary", "content", "userId", "createdAt", "updatedAt"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "Customer complaints and feedback tickets",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in_progress", "resolved"] },
+        "department": { "type": "string" },
+        "reporter": { "type": "string" },
+        "deadline": { "type": "string" },
+        "responseTemplate": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["title", "description", "category", "status", "department", "reporter", "deadline", "userId", "createdAt", "updatedAt"]
+    },
+    "MomProtocol": {
+      "title": "MomProtocol",
+      "description": "Minutes of Meeting protocols",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["title", "date", "content", "userId", "createdAt", "updatedAt"]
+    },
+    "SubReport": {
+      "title": "SubReport",
+      "description": "Employee submitted sub-reports",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["title", "content", "userId", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -85,6 +250,46 @@
     "users/{userId}/reports/{reportId}": {
       "schema": "Report",
       "description": "User's reports"
+    },
+    "users/{userId}/employeeTasks/{employeeTaskId}": {
+      "schema": "EmployeeTask",
+      "description": "User's staff tasks"
+    },
+    "users/{userId}/keepNotes/{noteId}": {
+      "schema": "KeepNote",
+      "description": "User's quick notes"
+    },
+    "users/{userId}/decisions/{decisionId}": {
+      "schema": "Decision",
+      "description": "User's directory decisions"
+    },
+    "users/{userId}/risks/{riskId}": {
+      "schema": "Risk",
+      "description": "User's compliance risks map"
+    },
+    "users/{userId}/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "User's scheduled system reminders"
+    },
+    "users/{userId}/approvals/{approvalId}": {
+      "schema": "Approval",
+      "description": "User's document routing approvals"
+    },
+    "users/{userId}/guides/{guideId}": {
+      "schema": "GuideItem",
+      "description": "User's internal knowledge base articles"
+    },
+    "users/{userId}/complaints/{complaintId}": {
+      "schema": "Complaint",
+      "description": "User's complaints and feedback index"
+    },
+    "users/{userId}/protocols/{protocolId}": {
+      "schema": "MomProtocol",
+      "description": "User's meeting MoM protocols"
+    },
+    "users/{userId}/subReports/{subReportId}": {
+      "schema": "SubReport",
+      "description": "User's sub-reports generated by AI or staff"
     }
   }
 }

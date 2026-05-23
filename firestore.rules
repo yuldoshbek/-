@@ -1,10 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Catch-all safety net
     match /{document=**} { 
       allow read, write: if false; 
     }
 
+    // Standard validators
     function isValidId(id) { 
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
     }
@@ -13,13 +15,14 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
 
+    // Hardened Entity Validators (Anti-Update-Gap & Size Enforced)
     function isValidTask(data, userId) {
       return data.keys().hasAll(['title', 'status', 'userId', 'createdAt', 'updatedAt'])
-        && data.title is string && data.title.size() <= 200
+        && data.title is string && data.title.size() <= 300
         && data.status is string && data.status.matches('^(pending|in_progress|completed|overdue)$')
         && data.userId == userId
-        && data.createdAt is int
-        && data.updatedAt is int
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string)
         && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 10000))
         && (!data.keys().hasAny(['source']) || (data.source is string && data.source.size() <= 200))
         && (!data.keys().hasAny(['assignee']) || (data.assignee is string && data.assignee.size() <= 200))
@@ -31,10 +34,10 @@ service cloud.firestore {
 
     function isValidMeeting(data, userId) {
       return data.keys().hasAll(['title', 'userId', 'createdAt', 'updatedAt'])
-        && data.title is string && data.title.size() <= 200
+        && data.title is string && data.title.size() <= 300
         && data.userId == userId
-        && data.createdAt is int
-        && data.updatedAt is int
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string)
         && (!data.keys().hasAny(['date']) || (data.date is string && data.date.size() <= 100))
         && (!data.keys().hasAny(['agenda']) || (data.agenda is string && data.agenda.size() <= 10000))
         && (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 100000))
@@ -47,8 +50,8 @@ service cloud.firestore {
         && data.subject is string && data.subject.size() <= 500
         && data.status is string && data.status.matches('^(draft|ready|sent)$')
         && data.userId == userId
-        && data.createdAt is int
-        && data.updatedAt is int
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string)
         && (!data.keys().hasAny(['bodyUzbek']) || (data.bodyUzbek is string && data.bodyUzbek.size() <= 100000))
         && (!data.keys().hasAny(['instructionsRu']) || (data.instructionsRu is string && data.instructionsRu.size() <= 100000))
         && (!data.keys().hasAny(['recipient']) || (data.recipient is string && data.recipient.size() <= 500));
@@ -59,12 +62,138 @@ service cloud.firestore {
         && data.title is string && data.title.size() <= 500
         && data.status is string && data.status.matches('^(pending|submitted|approved)$')
         && data.userId == userId
-        && data.createdAt is int
-        && data.updatedAt is int
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string)
         && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 200))
         && (!data.keys().hasAny(['summary']) || (data.summary is string && data.summary.size() <= 100000));
     }
 
+    function isValidEmployeeTask(data, userId) {
+      return data.keys().hasAll(['employeeName', 'taskTitle', 'status', 'priority', 'deadline', 'kpiImpact', 'userId', 'createdAt', 'updatedAt'])
+        && data.employeeName is string && data.employeeName.size() <= 200
+        && data.taskTitle is string && data.taskTitle.size() <= 500
+        && data.status is string && data.status.matches('^(active|completed|overdue)$')
+        && data.priority is string && data.priority.matches('^(low|medium|high|critical)$')
+        && data.deadline is string && data.deadline.size() <= 100
+        && (data.kpiImpact is int || data.kpiImpact is float)
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string)
+        && (!data.keys().hasAny(['role']) || (data.role is string && data.role.size() <= 200))
+        && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 200))
+        && (!data.keys().hasAny(['comments']) || (data.comments is list && data.comments.size() <= 150));
+    }
+
+    function isValidKeepNote(data, userId) {
+      return data.keys().hasAll(['title', 'content', 'color', 'tag', 'isPinned', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 300
+        && data.content is string && data.content.size() <= 100000
+        && data.color is string && data.color.size() <= 100
+        && data.tag is string && data.tag.size() <= 100
+        && data.isPinned is bool
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && data.updatedAt is string && data.updatedAt.size() <= 200;
+    }
+
+    function isValidDecision(data, userId) {
+      return data.keys().hasAll(['referenceNo', 'title', 'category', 'date', 'signer', 'status', 'summary', 'userId', 'createdAt', 'updatedAt'])
+        && data.referenceNo is string && data.referenceNo.size() <= 154
+        && data.title is string && data.title.size() <= 600
+        && data.category is string && data.category.matches('^(Стратегическое|Кадровое|Финансовое|Организационное)$')
+        && data.date is string && data.date.size() <= 100
+        && data.signer is string && data.signer.size() <= 300
+        && data.status is string && data.status.matches('^(Действует|Архив|Пересмотрено)$')
+        && data.summary is string && data.summary.size() <= 100000
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string);
+    }
+
+    function isValidRisk(data, userId) {
+      return data.keys().hasAll(['title', 'category', 'level', 'mitidgationPlan', 'reporter', 'status', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 600
+        && data.category is string && data.category.matches('^(Финансовый|Информационный|Кадровый|Логистика|Политический)$')
+        && data.level is string && data.level.matches('^(low|medium|high|critical)$')
+        && data.mitidgationPlan is string && data.mitidgationPlan.size() <= 100000
+        && data.reporter is string && data.reporter.size() <= 300
+        && data.status is string && data.status.matches('^(active|mitigated)$')
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string);
+    }
+
+    function isValidReminder(data, userId) {
+      return data.keys().hasAll(['text', 'datetime', 'method', 'status', 'userId', 'createdAt', 'updatedAt'])
+        && data.text is string && data.text.size() <= 2000
+        && data.datetime is string && data.datetime.size() <= 200
+        && data.method is string && data.method.matches('^(SMS|Telegram|Sber-Push|Email)$')
+        && data.status is string && data.status.matches('^(pending|sent)$')
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string);
+    }
+
+    function isValidApproval(data, userId) {
+      return data.keys().hasAll(['documentTitle', 'documentType', 'applicant', 'status', 'urgency', 'appointedSigners', 'currentSignerIndex', 'userId', 'createdAt', 'updatedAt'])
+        && data.documentTitle is string && data.documentTitle.size() <= 1500
+        && data.documentType is string && data.documentType.matches('^(Письмо|Отчет|Протокол|Распоряжение)$')
+        && data.applicant is string && data.applicant.size() <= 300
+        && data.status is string && data.status.matches('^(pending|approved|rejected)$')
+        && data.urgency is string && data.urgency.matches('^(routine|urgent|critical)$')
+        && data.appointedSigners is list && data.appointedSigners.size() <= 100
+        && data.currentSignerIndex is int
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string);
+    }
+
+    function isValidGuideItem(data, userId) {
+      return data.keys().hasAll(['title', 'category', 'summary', 'content', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 600
+        && data.category is string && data.category.matches('^(Документооборот|Шаблоны|Правила ТМК|Инструкции)$')
+        && data.summary is string && data.summary.size() <= 10000
+        && data.content is string && data.content.size() <= 120000
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string);
+    }
+
+    function isValidComplaint(data, userId) {
+      return data.keys().hasAll(['title', 'description', 'category', 'status', 'department', 'reporter', 'deadline', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 600
+        && data.description is string && data.description.size() <= 120000
+        && data.category is string && data.category.size() <= 300
+        && data.status is string && data.status.matches('^(pending|in_progress|resolved)$')
+        && data.department is string && data.department.size() <= 300
+        && data.reporter is string && data.reporter.size() <= 300
+        && data.deadline is string && data.deadline.size() <= 150
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string)
+        && (!data.keys().hasAny(['responseTemplate']) || (data.responseTemplate is string && data.responseTemplate.size() <= 120000));
+    }
+
+    function isValidMomProtocol(data, userId) {
+      return data.keys().hasAll(['title', 'date', 'content', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 600
+        && data.date is string && data.date.size() <= 100
+        && data.content is string && data.content.size() <= 150000
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string);
+    }
+
+    function isValidSubReport(data, userId) {
+      return data.keys().hasAll(['title', 'content', 'userId', 'createdAt', 'updatedAt'])
+        && data.title is string && data.title.size() <= 600
+        && data.content is string && data.content.size() <= 150000
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string);
+    }
+
+    // Secured sub-resources matching
     match /users/{userId} {
       match /tasks/{taskId} {
         allow read: if isOwner(userId);
@@ -74,8 +203,7 @@ service cloud.firestore {
         allow update: if isOwner(userId)
           && isValidId(taskId)
           && isValidTask(incoming(), userId)
-          && incoming().userId == existing().userId
-          && incoming().createdAt == existing().createdAt;
+          && incoming().userId == existing().userId;
         allow delete: if isOwner(userId);
       }
 
@@ -87,8 +215,7 @@ service cloud.firestore {
         allow update: if isOwner(userId)
           && isValidId(meetingId)
           && isValidMeeting(incoming(), userId)
-          && incoming().userId == existing().userId
-          && incoming().createdAt == existing().createdAt;
+          && incoming().userId == existing().userId;
         allow delete: if isOwner(userId);
       }
 
@@ -100,8 +227,7 @@ service cloud.firestore {
         allow update: if isOwner(userId)
           && isValidId(letterId)
           && isValidLetter(incoming(), userId)
-          && incoming().userId == existing().userId
-          && incoming().createdAt == existing().createdAt;
+          && incoming().userId == existing().userId;
         allow delete: if isOwner(userId);
       }
 
@@ -113,8 +239,127 @@ service cloud.firestore {
         allow update: if isOwner(userId)
           && isValidId(reportId)
           && isValidReport(incoming(), userId)
-          && incoming().userId == existing().userId
-          && incoming().createdAt == existing().createdAt;
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /employeeTasks/{employeeTaskId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(employeeTaskId)
+          && isValidEmployeeTask(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(employeeTaskId)
+          && isValidEmployeeTask(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /keepNotes/{noteId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(noteId)
+          && isValidKeepNote(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(noteId)
+          && isValidKeepNote(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /decisions/{decisionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(decisionId)
+          && isValidDecision(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(decisionId)
+          && isValidDecision(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /risks/{riskId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(riskId)
+          && isValidRisk(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(riskId)
+          && isValidRisk(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /reminders/{reminderId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(reminderId)
+          && isValidReminder(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(reminderId)
+          && isValidReminder(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /approvals/{approvalId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(approvalId)
+          && isValidApproval(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(approvalId)
+          && isValidApproval(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /guides/{guideId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(guideId)
+          && isValidGuideItem(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(guideId)
+          && isValidGuideItem(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /complaints/{complaintId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(complaintId)
+          && isValidComplaint(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(complaintId)
+          && isValidComplaint(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /protocols/{protocolId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(protocolId)
+          && isValidMomProtocol(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(protocolId)
+          && isValidMomProtocol(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /subReports/{subReportId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(subReportId)
+          && isValidSubReport(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(subReportId)
+          && isValidSubReport(incoming(), userId)
+          && incoming().userId == existing().userId;
         allow delete: if isOwner(userId);
       }
     }

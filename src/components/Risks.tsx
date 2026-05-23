@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   AlertTriangle, 
   Search, 
@@ -8,43 +8,11 @@ import {
   Clock, 
   HelpCircle 
 } from 'lucide-react';
-
-interface ExecutiveRisk {
-  id: string;
-  title: string;
-  category: 'Финансовый' | 'Информационный' | 'Кадровый' | 'Логистика' | 'Политический';
-  level: 'low' | 'medium' | 'high' | 'critical';
-  mitidgationPlan: string;
-  reporter: string;
-  status: 'active' | 'mitigated';
-}
-
-const defaultRisks: ExecutiveRisk[] = [
-  {
-    id: 'risk-1',
-    title: 'Задержка транзита стальных комплектующих на узле Яллама',
-    category: 'Логистика',
-    level: 'critical',
-    mitidgationPlan: 'Использовать резервный порт содействия и оформить таможенную гарантию.',
-    reporter: 'Туляганов Д.Х. (Сектор импорта/логистики)',
-    status: 'active'
-  },
-  {
-    id: 'risk-2',
-    title: 'Превышение плановых затрат на интеграцию реестра СЭД',
-    category: 'Финансовый',
-    level: 'medium',
-    mitidgationPlan: 'Частичное секвестирование необязательных доработок пользовательского интерфейса.',
-    reporter: 'Каримова Н.М. (Финансовый департамент)',
-    status: 'active'
-  }
-];
+import { useRisks } from '../lib/hooks';
+import { ExecutiveRisk } from '../types';
 
 export default function Risks() {
-  const [risks, setRisks] = useState<ExecutiveRisk[]>(() => {
-    const saved = localStorage.getItem('tmk_risks');
-    return saved ? JSON.parse(saved) : defaultRisks;
-  });
+  const { risks, addRisk, mitigationRisk } = useRisks();
 
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
@@ -56,25 +24,19 @@ export default function Risks() {
   const [mitPlan, setMitPlan] = useState('');
   const [reporter, setReporter] = useState('');
 
-  useEffect(() => {
-    localStorage.setItem('tmk_risks', JSON.stringify(risks));
-  }, [risks]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const fresh: ExecutiveRisk = {
-      id: `risk-${Date.now()}`,
+    addRisk({
       title: title.trim(),
       category,
       level,
       mitidgationPlan: mitPlan.trim() || 'Разработка защитных мер поручена ответственным департаментам.',
       reporter: reporter.trim() || 'Администратор СЭД',
       status: 'active'
-    };
+    });
 
-    setRisks([fresh, ...risks]);
     setTitle('');
     setMitPlan('');
     setReporter('');
@@ -82,7 +44,7 @@ export default function Risks() {
   };
 
   const handleMitigated = (id: string) => {
-    setRisks(risks.map(r => r.id === id ? { ...r, status: 'mitigated' } : r));
+    mitigationRisk(id);
   };
 
   const filtered = risks.filter(r => r.title.toLowerCase().includes(search.toLowerCase()));
