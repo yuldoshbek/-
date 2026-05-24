@@ -1,20 +1,78 @@
+# Executive Workspace (Personal Executive Control System)
+
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+  <img width="100%" alt="Executive Workspace Banner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" style="border-radius: 12px; margin-bottom: 20px;" />
 </div>
 
-# Run and deploy your AI Studio app
+**Executive Workspace** — это персональная рабочая система ассистента генерального директора. Система спроектирована по принципу максимальной полезности и минимализма: вместо 29 разрозненных модулей она содержит 8 ключевых разделов с глубокой ИИ-интеграцией (Gemini API) и поддержкой двуязычного формата (русский/узбекский).
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/a41982cc-83c3-4e00-890e-7d408d77ba28
+## 🚀 Основные возможности (8 разделов)
 
-## Run Locally
+1. **Панель управления (Dashboard)** — KPI-карточки, быстрые действия, лента последних событий и хаб синхронизации баз данных.
+2. **Задачи (Tasks)** — Личные задачи и поручения отделов в виде Канбан-доски и списков с фильтрацией и CRUD.
+3. **Совещания (Meetings)** — Генератор официальных протоколов (Minutes of Meetings) с помощью ИИ, архив и повестки.
+4. **Отчётность (Reports)** — Генератор сводок для генерального директора и агрегатор отчётов сотрудников.
+5. **Письма (Letters)** — Двуязычный ИИ-переводчик (RU ⇄ UZ) с анализом тональности и соответствия деловому стилю.
+6. **Документы (Documents)** — Единый хаб документов, объединяющий Google Drive, Docs и Sheets.
+7. **ИИ-Ассистент (AI Assistant)** — Чат-интерфейс, утренние брифинги на основе текущих задач и быстрые пресеты.
+8. **Настройки (Settings)** — Профиль ассистента, ключи API, мониторинг лимитов ресурсов, синхронизация Firestore и выбор темы оформления.
 
-**Prerequisites:**  Node.js
+---
 
+## 🛠 Технологический стек
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+* **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS v4 + Единая дизайн-система (`index.css` с поддержкой Glassmorphism и тем оформления)
+* **Backend**: Express + TS-node (для локального запуска)
+* **Serverless / Hosting**: Netlify CLI + Netlify Functions (`serverless-http` обёртка для API)
+* **База данных**: Firebase / Cloud Firestore (с локальной оффлайн-песочницей в `localStorage` в случае сбоев сети)
+* **ИИ**: Gemini API (модель `gemini-2.5-flash`) via `@google/genai`
+
+---
+
+## 📦 Быстрый старт
+
+### Требования
+* Node.js v18+
+
+### Шаги запуска:
+1. **Установите зависимости**:
+   ```bash
+   npm install
+   ```
+
+2. **Настройте переменные окружения**:
+   Скопируйте `.env.example` в `.env` (или `.env.local` / `.env.production` для Netlify) и укажите ваши ключи:
+   ```env
+   GEMINI_API_KEY=ваш_gemini_api_key
+   ```
+
+3. **Запустите локальный сервер разработки**:
+   ```bash
+   npm run dev
+   ```
+   *Приложение будет доступно по адресу: `http://localhost:3000`*
+
+---
+
+## 🌐 Интеграция с Netlify и развёртывание
+
+Проект оптимизирован для работы в экосистеме **Netlify**:
+* **Маршрутизация**: В корне проекта настроен файл `netlify.toml`, который перенаправляет все запросы к API с `/api/*` на Serverless Function `/.netlify/functions/api`, а все остальные пути перенаправляет на `index.html` (для работы SPA-роутинга).
+* **Сборка API**: Express-приложение вынесено в `src/server/app.ts` и импортируется в `netlify/functions/api.ts`, где упаковывается с помощью `serverless-http`.
+* **Авто-деплой**: При push-событии в ветку `main` подключенного GitHub-репозитория Netlify автоматически запускает сборку (`npm run build`) и публикует приложение.
+
+---
+
+## 🔄 Автоматическая синхронизация репозитория (Git)
+
+Для удобной работы добавлена встроенная утилита синхронизации. Скрипт `git-sync.js` автоматически:
+1. Добавляет все изменения в индекс (`git add -A`).
+2. Создаёт коммит с локальным временем: `Auto-sync: DD.MM.YYYY, HH:MM:SS`.
+3. Пушит изменения в удалённый репозиторий в ветку `main` (что запускает авто-деплой на Netlify).
+
+**Команда для синхронизации**:
+```bash
+npm run git-sync
+```

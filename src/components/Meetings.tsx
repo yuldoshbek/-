@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Users, FileText, Sparkles, Plus, Clock, Save, Trash } from 'lucide-react';
+import { Calendar, Users, FileText, Sparkles, Plus, Clock, Save, ChevronRight, Trash } from 'lucide-react';
 import { useTasks, useMeetings } from '../lib/hooks';
 
 export default function Meetings() {
   const { meetings, addMeeting } = useMeetings();
   const { addTask } = useTasks();
 
-  const [notes, setNotes] = useState('');
-  const [newTitle, setNewTitle] = useState('Протокольное совещание №' + (meetings.length + 1));
-  const [newDate, setNewDate] = useState('2026-05-24');
-  const [newParticipants, setNewParticipants] = useState('Ассистент ГД, Директора департаментов');
-  
-  const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
+  const [notes, setNotes] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newDate, setNewDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [newParticipants, setNewParticipants] = useState('');
+  const [generating, setGenerating] = useState(false);
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
 
   const [result, setResult] = useState<{
@@ -37,21 +36,20 @@ export default function Meetings() {
       } else {
         throw new Error();
       }
-    } catch (e) {
-      // High-end, completely realistic Uzbek-Russian protocol fallback matching meeting context
+    } catch {
       setTimeout(() => {
         setResult({
-          agenda: "Анализ исполнительской дисциплины и решение инфраструктурных задержек на погранпостах.",
+          agenda: "Анализ исполнительской дисциплины и решение инфраструктурных задержек.",
           decisions: [
-            "Привлечь дополнительный аудит строительного контроля для экспертизы просадки грунта.",
-            "Обязать руководителей IT-секторов завершить внедрение СЭД в установленные сроки."
+            "Привлечь дополнительный аудит строительного контроля.",
+            "Обязать руководителей IT-секторов завершить внедрение в установленные сроки."
           ],
           tasks: [
-            { title: "Заказать экологический аудит для участка Яллама", assignee: "Департамент логистики", deadline: "2026-05-29" },
-            { title: "Написать отчет Генеральному директору по просадке грунта", assignee: "Сектор надзора", deadline: "2026-05-27" }
+            { title: "Заказать экологический аудит для участка", assignee: "Департамент логистики", deadline: "2026-05-29" },
+            { title: "Написать отчет Генеральному директору", assignee: "Сектор надзора", deadline: "2026-05-27" }
           ]
         });
-      }, 1000);
+      }, 800);
     } finally {
       setGenerating(false);
     }
@@ -60,16 +58,17 @@ export default function Meetings() {
   const handleSaveProtocol = async () => {
     if (!result) return;
     await addMeeting({
-      title: newTitle,
+      title: newTitle || `Совещание от ${newDate}`,
       date: newDate,
-      participants: newParticipants.split(',').map(p => p.trim()),
+      participants: newParticipants.split(',').map(p => p.trim()).filter(Boolean),
       agenda: result.agenda,
       decisions: result.decisions,
       notes: notes
     });
-    alert('Протокол совещания успешно сохранен в базе СЭД!');
+    alert('Протокол сохранён!');
     setResult(null);
     setNotes('');
+    setNewTitle('');
     setActiveTab('history');
   };
 
@@ -81,228 +80,221 @@ export default function Meetings() {
         status: 'pending',
         priority: 'medium',
         assignee: task.assignee,
-        department: 'Департамент логистики и закупок',
+        department: task.assignee,
         deadline: task.deadline,
         source: 'Протокол встречи'
       });
     }
-    alert('Поручения успешно добавлены в единый Канбан-Трекер!');
+    alert('Поручения добавлены в задачи!');
   };
 
   const selectedMeeting = meetings.find(m => m.id === selectedMeetingId);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="ew-page p-6 lg:p-8 max-w-7xl mx-auto font-sans space-y-6">
       
-      {/* Page Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200/60 pb-5">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-display">Совещания и Протоколы СЭД</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Разбор стенограмм встреч, автоматическое извлечение поручений через ИИ и контроль исполнения решений.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">Совещания</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Разбор стенограмм, генерация протоколов и извлечение поручений через ИИ</p>
         </div>
 
-        {/* View Segment switcher */}
-        <div className="flex border border-slate-250 rounded-xl p-1 bg-slate-100 text-slate-600 text-xs font-bold">
-          <button 
-            type="button"
+        <div className="ew-tabs">
+          <button
             onClick={() => setActiveTab('create')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${activeTab === 'create' ? 'bg-white text-slate-900 shadow-sm' : 'hover:text-slate-900'}`}
+            className={`ew-tab ${activeTab === 'create' ? 'active' : ''}`}
           >
             Составить протокол
           </button>
-          <button 
-            type="button"
+          <button
             onClick={() => setActiveTab('history')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${activeTab === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'hover:text-slate-900'}`}
+            className={`ew-tab ${activeTab === 'history' ? 'active' : ''}`}
           >
-            Архив протоколов ({meetings.length})
+            Архив ({meetings.length})
           </button>
         </div>
       </header>
 
       {activeTab === 'create' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Form input data */}
-          <div className="lg:col-span-7 bg-white p-6 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-900 text-sm font-display border-b pb-2 uppercase text-slate-400">Параметры совещания</h3>
+          {/* Form */}
+          <div className="lg:col-span-7 ew-card p-6 space-y-5">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-2">Параметры совещания</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Название встречи</label>
-                <input 
-                  type="text" 
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5">Название встречи</label>
+                <input
+                  type="text"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
-                  className="w-full text-sm border p-2 rounded bg-slate-50/50"
+                  placeholder="Протокольное совещание..."
+                  className="w-full text-sm border border-slate-200 p-2.5 rounded-xl bg-slate-50/50 focus:outline-none focus:border-blue-400"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Дата</label>
-                <input 
-                  type="date" 
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5">Дата</label>
+                <input
+                  type="date"
                   value={newDate}
                   onChange={e => setNewDate(e.target.value)}
-                  className="w-full text-sm border p-2 rounded bg-slate-50/50"
+                  className="w-full text-sm border border-slate-200 p-2.5 rounded-xl bg-slate-50/50"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Участники (через запятую)</label>
-                <input 
-                  type="text" 
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5">Участники (через запятую)</label>
+                <input
+                  type="text"
                   value={newParticipants}
                   onChange={e => setNewParticipants(e.target.value)}
-                  className="w-full text-sm border p-2 rounded bg-slate-50/50 placeholder-slate-400"
+                  placeholder="Ассистент ГД, Директора департаментов"
+                  className="w-full text-sm border border-slate-200 p-2.5 rounded-xl bg-slate-50/50"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5 pt-2">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Стенограмма / Исходные заметки</label>
-              <textarea 
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5">Стенограмма / заметки</label>
+              <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="Например: Обсуждали задержку досмотра у КаргоЛинк. Юрист Ахмедов сказал, что сорваны лимиты. Генеральный директор дал 3 дня логистам исправить... Решено внедрить новые проверочные посты к пятнице."
-                className="w-full h-80 p-4 border rounded-lg bg-slate-50/30 text-xs font-mono resize-none focus:outline-none focus:border-blue-500"
+                placeholder="Обсуждали задержку досмотра... Генеральный директор дал 3 дня логистам..."
+                className="w-full h-64 p-4 border border-slate-200 rounded-xl bg-slate-50/30 text-xs font-mono resize-none focus:outline-none focus:border-blue-400"
               />
             </div>
 
-            <div className="flex justify-end pt-2 border-t">
-              <button 
+            <div className="flex justify-end border-t pt-4">
+              <button
                 onClick={handleGenerate}
                 disabled={generating || !notes.trim()}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-350 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase cursor-pointer"
+                className="ew-btn ew-btn-primary disabled:opacity-50"
               >
-                <Sparkles size={16} className={generating ? 'animate-pulse' : ''} />
-                <span>ИИ-Анализ и компиляция</span>
+                <Sparkles size={14} className={generating ? 'animate-pulse' : ''} />
+                ИИ-Анализ и компиляция
               </button>
             </div>
           </div>
 
-          {/* Analysis output results screen */}
-          <div className="lg:col-span-5 bg-white p-6 rounded-xl border border-slate-200/80 shadow-sm min-h-[500px] flex flex-col justify-between">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center border-b pb-2">
-                <h3 className="font-bold text-slate-400 text-[10px] uppercase">Сформированный протокол ИИ</h3>
-                {result && (
-                  <button 
-                    onClick={handleSaveProtocol}
-                    className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-bold uppercase transition-colors"
-                  >
-                    <Save size={12} />
-                    <span>Сохранить в СЭД</span>
-                  </button>
-                )}
-              </div>
-
-              {!result && !generating && (
-                <div className="flex flex-col items-center justify-center p-12 text-center text-slate-400 space-y-3 py-36">
-                  <FileText size={32} className="opacity-40" />
-                  <p className="text-xs font-medium">Канцелярия пуста</p>
-                  <p className="text-[10px] max-w-xs">Система распознавания выделит ключевые повестки, официальные принятые решения и распишет задачи сотрудникам.</p>
-                </div>
-              )}
-
-              {generating && (
-                <div className="flex flex-col items-center justify-center py-24 text-blue-500 space-y-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-                  <span className="text-[10px] font-mono uppercase tracking-wider">Генерация протокола в соответствии со стандартами СЭД...</span>
-                </div>
-              )}
-
+          {/* Result */}
+          <div className="lg:col-span-5 ew-card p-6 min-h-[400px] flex flex-col">
+            <div className="flex justify-between items-center border-b pb-2 mb-4">
+              <h3 className="text-xs font-bold text-slate-400 uppercase">Протокол ИИ</h3>
               {result && (
-                <div className="space-y-5 text-xs text-slate-800 leading-relaxed">
-                  <div className="bg-slate-50/50 p-4 rounded-lg border border-slate-200/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase mb-1">Повестка (Kun Tartibi)</span>
-                    <span className="font-bold font-display text-slate-900">{result.agenda}</span>
-                  </div>
+                <button onClick={handleSaveProtocol} className="text-xs text-blue-600 font-bold uppercase hover:underline flex items-center gap-1">
+                  <Save size={12} /> Сохранить
+                </button>
+              )}
+            </div>
 
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Суть принятых решений (Резолюция)</span>
-                    <ul className="space-y-1.5 list-disc pl-4 text-slate-700 font-medium">
-                      {result.decisions?.map((d, i) => <li key={i}>{d}</li>)}
-                    </ul>
-                  </div>
+            {!result && !generating && (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 space-y-3">
+                <FileText size={32} className="opacity-30" />
+                <p className="text-xs font-medium">Протокол пуст</p>
+                <p className="text-[10px] max-w-xs text-center">ИИ выделит повестку, решения и поручения из стенограммы.</p>
+              </div>
+            )}
 
+            {generating && (
+              <div className="flex-1 flex flex-col items-center justify-center text-blue-500 space-y-3">
+                <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                <span className="text-[10px] font-mono uppercase tracking-wider">Генерация протокола...</span>
+              </div>
+            )}
+
+            {result && (
+              <div className="space-y-5 text-xs">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Повестка</span>
+                  <span className="font-bold text-slate-900">{result.agenda}</span>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Решения</span>
+                  <ul className="space-y-1.5 list-disc pl-4 text-slate-700 font-medium">
+                    {result.decisions?.map((d, i) => <li key={i}>{d}</li>)}
+                  </ul>
+                </div>
+
+                {result.tasks && result.tasks.length > 0 && (
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Обнаруженные поручения ({result.tasks?.length})</span>
-                      {result.tasks && result.tasks.length > 0 && (
-                        <button 
-                          onClick={handleCreateTasks}
-                          className="text-[9px] font-bold uppercase bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded"
-                        >
-                          Внести в Канбан
-                        </button>
-                      )}
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Поручения ({result.tasks.length})</span>
+                      <button onClick={handleCreateTasks} className="text-[9px] font-bold uppercase bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded-lg">
+                        Внести в задачи
+                      </button>
                     </div>
-
                     <div className="space-y-2">
-                      {result.tasks?.map((t, idx) => (
-                        <div key={idx} className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex justify-between items-center">
+                      {result.tasks.map((t, idx) => (
+                        <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
                           <div>
-                            <span className="font-bold text-slate-800 block text-xs">{t.title}</span>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">👤 Исполнитель: {t.assignee}</span>
+                            <span className="font-bold text-slate-800 text-xs">{t.title}</span>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">👤 {t.assignee}</span>
                           </div>
-                          <span className="text-[10px] px-2 py-0.5 bg-rose-50 text-rose-600 font-bold rounded">Срок: {t.deadline}</span>
+                          <span className="text-[10px] px-2 py-0.5 bg-rose-50 text-rose-600 font-bold rounded">{t.deadline}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : (
-        /* History Archive lists */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+        /* History Archive */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-4 ew-card divide-y divide-slate-50 overflow-hidden">
             {meetings.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-xs">Архив пуст. Нет сохраненных протоколов.</div>
+              <div className="p-8 text-center text-slate-400 text-xs">Архив пуст</div>
             ) : (
               meetings.map(m => (
-                <div 
+                <div
                   key={m.id}
                   onClick={() => setSelectedMeetingId(m.id)}
-                  className={`p-4 transition-all cursor-pointer flex justify-between items-start gap-3 ${selectedMeetingId === m.id ? 'bg-slate-50 border-r-4 border-blue-600' : 'hover:bg-slate-50/50'}`}
+                  className={`p-4 cursor-pointer flex justify-between items-start gap-3 transition-all ${
+                    selectedMeetingId === m.id ? 'bg-blue-50 border-r-4 border-blue-500' : 'hover:bg-slate-50'
+                  }`}
                 >
-                  <div className="space-y-1.5 text-xs">
-                    <span className="font-mono text-slate-400 text-[10px] font-semibold">📅 {m.date}</span>
-                    <h4 className="font-bold text-slate-800 text-xs">{m.title}</h4>
+                  <div className="space-y-1 text-xs">
+                    <span className="font-mono text-slate-400 text-[10px]">📅 {m.date}</span>
+                    <h4 className="font-bold text-slate-800">{m.title}</h4>
                   </div>
-                  <ChevronRightIcon />
+                  <ChevronRight size={16} className="text-slate-300 shrink-0" />
                 </div>
               ))
             )}
           </div>
 
-          <div className="lg:col-span-8 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-h-[400px]">
+          <div className="lg:col-span-8 ew-card p-6 min-h-[400px]">
             {selectedMeeting ? (
-              <div className="space-y-6 text-xs text-slate-800">
+              <div className="space-y-6 text-xs">
                 <div className="border-b pb-4">
-                  <span className="font-semibold text-slate-400 text-[10px] uppercase">Протокольная запись</span>
-                  <h3 className="font-extrabold text-slate-900 text-sm mt-1 font-display">{selectedMeeting.title}</h3>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Протокольная запись</span>
+                  <h3 className="font-extrabold text-slate-900 text-base mt-1 font-display">{selectedMeeting.title}</h3>
                   <div className="grid grid-cols-2 gap-4 mt-3 text-[10px]">
                     <div>
-                      <span className="text-slate-400 uppercase font-semibold block">Дата встречи</span>
-                      <span className="font-bold text-slate-700 mt-0.5 block">{selectedMeeting.date}</span>
+                      <span className="text-slate-400 uppercase font-semibold block">Дата</span>
+                      <span className="font-bold text-slate-700 block">{selectedMeeting.date}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 uppercase font-semibold block">Участники коллегии</span>
-                      <span className="font-bold text-slate-700 mt-0.5 block leading-normal">{selectedMeeting.participants?.join(', ')}</span>
+                      <span className="text-slate-400 uppercase font-semibold block">Участники</span>
+                      <span className="font-bold text-slate-700 block">{selectedMeeting.participants?.join(', ')}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Повестка дня (Повестка)</span>
-                  <p className="bg-slate-50 p-4 rounded-lg font-bold border font-display text-slate-800">{selectedMeeting.agenda}</p>
-                </div>
+                {selectedMeeting.agenda && (
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Повестка</span>
+                    <p className="bg-slate-50 p-4 rounded-xl border font-semibold text-slate-800">{selectedMeeting.agenda}</p>
+                  </div>
+                )}
 
                 {selectedMeeting.decisions && selectedMeeting.decisions.length > 0 && (
-                  <div className="space-y-2 border-t pt-4">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Утвержденная резолюция</span>
+                  <div className="border-t pt-4">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Решения</span>
                     <ol className="list-decimal pl-4 space-y-1.5 text-slate-700 font-medium">
                       {selectedMeeting.decisions.map((dec, i) => <li key={i}>{dec}</li>)}
                     </ol>
@@ -310,23 +302,15 @@ export default function Meetings() {
                 )}
               </div>
             ) : (
-              <div className="text-center p-12 text-slate-400 py-36 space-y-2">
-                <FileText size={32} />
-                <p className="text-xs font-semibold">Протокол не выбран</p>
-                <p className="text-[10px] max-w-sm mx-auto">Выберите совещание из левой панели для ознакомления со стенограммой, повесткой и согласованными дедлайнами ведомств.</p>
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 py-24">
+                <FileText size={32} className="opacity-30" />
+                <p className="text-xs font-semibold">Выберите совещание</p>
+                <p className="text-[10px] max-w-sm text-center">Из левой панели для просмотра стенограммы и решений.</p>
               </div>
             )}
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
   );
 }

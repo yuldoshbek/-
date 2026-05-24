@@ -1,0 +1,58 @@
+# Executive Workspace Memory
+
+## Обзор проекта
+**Personal Executive Control System (Executive Workspace)** — личная рабочая система ассистента генерального директора. Минимум лишнего интерфейса, максимум пользы. 8 ключевых разделов вместо 29 модулей.
+
+## Архитектура системы
+* **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS v4 + Custom Design System (`index.css`)
+* **Backend / API**: Express-сервер (`server.ts`) + Gemini API + Google Workspace APIs
+* **База данных**: Firebase/Firestore + localStorage (оффлайн-песочница)
+* **Дизайн-система**: CSS Custom Properties (`--ew-*`), классы `.ew-card`, `.ew-glass`, `.ew-nav-item`, `.ew-kpi`, `.ew-btn`, `.ew-tabs`
+
+## Структура модулей (8 разделов)
+
+| Модуль | Файл | Маршрут | Описание |
+|--------|------|---------|----------|
+| Dashboard | `Dashboard.tsx` | `/` | KPI-карточки, быстрые действия, лента событий |
+| Задачи | `Tasks.tsx` | `/tasks` | Канбан + таблица, CRUD, фильтры |
+| Совещания | `Meetings.tsx` | `/meetings` | ИИ-протоколы, создание, архив |
+| Отчётность | `Reports.tsx` | `/reports` | ИИ-аналитика, генератор, отчёты сотрудников |
+| Письма | `Letters.tsx` | `/letters` | Двуязычный перевод (RU→UZ) |
+| Документы | `Documents.tsx` | `/documents` | Google Drive/Docs/Sheets в одном хабе |
+| ИИ-Ассистент | `AIAssistant.tsx` | `/ai-assistant` | Chat-интерфейс + пресеты |
+| Настройки | `Settings.tsx` | `/settings` | Профиль, API ключи, расход, БД, тема |
+
+## Текущее состояние
+* Система успешно редизайнирована: 29 модулей → 8 разделов.
+* 23 компонента удалены, 2 новых создана, 8 обновлены.
+* `npm run lint` и `npm run build` — 0 ошибок.
+* Dev-сервер: `http://localhost:3000`
+
+## Хронология изменений
+* **2026-05-24 (сессия 1)**:
+  - Привязка к Git-репозиторию, установка зависимостей
+  - Синхронизация БД (бутстрапирование, syncAllData, resetAllData)
+  - Database Sync Hub на Dashboard
+  - Консольный db-cli.js для управления Firestore
+
+* **2026-05-24 (сессия 2 — Редизайн)**:
+  - Полный редизайн системы по концепции "Personal Executive Control System"
+  - Создана единая дизайн-система в `index.css` (CSS Custom Properties, glassmorphism, анимации)
+  - Создан `Settings.tsx` (профиль, API ключи, расход ресурсов, синхронизация БД, тема)
+  - Создан `Documents.tsx` (объединение Google Drive/Docs/Sheets)
+  - Переработан `Dashboard.tsx` (KPI-карточки, быстрые действия, лента)
+  - Обновлён `Meetings.tsx` (поглотил MomGenerator + MeetingPrep)
+  - Обновлён `Reports.tsx` (поглотил ReportsGenerator + Employee Reports)
+  - Обновлён `AIAssistant.tsx` (chat UI, пресеты с утренним брифингом)
+  - Переработан `App.tsx` (8 маршрутов, плоский sidebar, упрощённый topbar)
+  - Удалены 23 неиспользуемых компонента
+  - Верификация: lint ✓, build ✓
+
+* **2026-05-24 (сессия 3 — Git & Netlify Integration)**:
+  - Установлен пакет `serverless-http` для адаптации Express под Netlify Functions.
+  - Настроен `netlify.toml` для сборки, Netlify Functions и SPA-роутинга.
+  - Реструктурирован бэкенд: Express-маршруты вынесены в `src/server/app.ts`, а `server.ts` и `netlify/functions/api.ts` служат локальным и облачным ранерами соответственно.
+  - Создана автоматизированная утилита синхронизации `git-sync.js` (запуск через `npm run git-sync`) для авто-стейджинга, авто-коммита и авто-пуша.
+  - Обновлена проектная документация (корневой `README.md`).
+
+

@@ -22,204 +22,384 @@ import {
 // Default Demo Data to populate local sandbox right away
 const defaultTasks: Task[] = [
   {
-    id: 't-1',
-    title: 'Подготовить проект Постановления о цифровизации госорганов',
-    description: 'Разработать подробный план сквозной интеграции СЭД и внедрения ИИ-ассистентов во все министерства до осени.',
-    priority: 'urgent',
-    status: 'pending',
-    department: 'Департамент IT и цифровизации',
-    assignee: 'Ахмедов У.М.',
-    deadline: '2026-05-28',
-    source: 'Поручение Администрации',
-    userId: 'guest',
-    createdAt: Date.now() - 3600000 * 24,
-    updatedAt: Date.now() - 3600000 * 2
+    "id": "a-001",
+    "title": "Подготовить данные по критическому сырью",
+    "description": "Передать актуальные геологические данные для итогового отчёта.",
+    "priority": "high",
+    "status": "in_progress",
+    "department": "Геология",
+    "assignee": "Ответственный по геологии",
+    "deadline": "2026-05-25",
+    "source": "Встреча",
+    "userId": "guest",
+    "createdAt": 1779520428641,
+    "updatedAt": 1779606828641
   },
   {
-    id: 't-2',
-    title: 'Согласовать бюджет развития и капитальных вложений с Минфином',
-    description: 'Защитить статьи инвестиций по модернизации Таможенного поста Яллама перед межведомственной комиссией.',
-    priority: 'high',
-    status: 'in_progress',
-    department: 'Финансовый департамент',
-    assignee: 'Каримова Н.М.',
-    deadline: '2026-06-05',
-    userId: 'guest',
-    createdAt: Date.now() - 3600000 * 48,
-    updatedAt: Date.now() - 3600000 * 10
+    "id": "a-002",
+    "title": "Рассчитать бюджет по направлению",
+    "description": "Подготовить бюджетную оценку и указать допущения.",
+    "priority": "high",
+    "status": "pending",
+    "department": "Финансы",
+    "assignee": "Ответственный по бюджету",
+    "deadline": "2026-05-23",
+    "source": "Поручение директора",
+    "userId": "guest",
+    "createdAt": 1779520428641,
+    "updatedAt": 1779606828641
+  },
+  {
+    "id": "a-003",
+    "title": "Проверить регуляторные риски",
+    "description": "Выявить ограничения, разрешения и согласования.",
+    "priority": "high",
+    "status": "in_progress",
+    "department": "Юридический",
+    "assignee": "Ответственный юрист",
+    "deadline": "2026-05-22",
+    "source": "Протокол встречи",
+    "userId": "guest",
+    "createdAt": 1779520428641,
+    "updatedAt": 1779606828641
   }
 ];
 
 const defaultMeetings: Meeting[] = [
   {
-    id: 'm-1',
-    title: 'Расширенное заседание Кабинета Министров Республики Узбекистан',
-    date: '2026-05-24',
-    participants: ['Премьер-министр', 'Генеральный директор', 'Коллегия ведомств'],
-    agenda: 'Ускорение реализации strategic инвестиционных проектов в сфере ТЭК и логистики.',
-    notes: 'Необходимо срочно подготовить сводный доклад по модернизации ключевых объектов инфраструктуры.',
-    decisions: [
-      'Усилить персональную ответственность руководителей секторов за срыв сроков сдачи актов приемки.',
-      'Передать функции технического надзора по приоритетным точкам независимому аудитору.'
+    "id": "m-001",
+    "title": "Подготовка отчёта по критическому сырью",
+    "date": "2026-05-23",
+    "participants": [
+      "Геология",
+      "Финансы",
+      "Юридический"
     ],
-    userId: 'guest',
-    createdAt: Date.now() - 3600000 * 10,
-    updatedAt: Date.now()
+    "agenda": "Данные геологии, Бюджет, Регуляторные риски",
+    "notes": "Сегодня была встреча с геологическим отделом, финансовым отделом и юридическим отделом. Обсудили подготовку отчёта по критическому сырью. Геология должна дать данные до 25 мая. Финансы должны рассчитать бюджет. Юристы должны проверить регуляторные риски.",
+    "decisions": [
+      "Продолжить подготовку отчёта по критическому сырью с отдельной проверкой юридических рисков."
+    ],
+    "userId": "guest",
+    "createdAt": 1779563628641,
+    "updatedAt": 1779606828641
   }
 ];
 
 const defaultLetters: Letter[] = [
   {
-    id: 'l-1',
-    subject: 'Запрос в Хокимият Ташкента о выделении дополнительной территории под проект Технопарка',
-    instructionsRu: 'Написать строго официальное письмо хокиму города с просьбой ускорить рассмотрение документов по нашему предыдущему обращению и выделить участок площадью 1.5 Га.',
-    bodyUzbek: 'Toshkent shahar Hokimi janoblariga!\n\nUshbu xatimiz orqali kompaniyamiz tomonidan amalga oshirilayotgan innovatsion Technopark loyihasini kengaytirish maqsadida qo\'shimcha 1.5 gektar yer maydoni ajratish bo\'yicha topshirilgan hujjatlar to\'plamini ko\'rib chiqishni jadallashtirishingizni so\'raymiz.',
-    status: 'ready',
-    recipient: 'Хокимият г. Ташкента',
-    userId: 'guest',
-    createdAt: Date.now() - 3600000 * 20,
-    updatedAt: Date.now()
+    "id": "l-001",
+    "subject": "Kritik xomashyo yo‘nalishi bo‘yicha hisobotni kelishish yuzasidan",
+    "instructionsRu": "Подготовь письмо в Министерство, что нам нужно согласовать отчёт по направлению критического сырья.",
+    "bodyUzbek": "Hurmatli Tog‘-kon sanoati va geologiya vazirligi vakillari!\n\nSizga shuni ma’lum qilamizki, tashkilotimiz tomonidan kritik xomashyo yo‘nalishi bo‘yicha hisobotni tayyorlash va kelishish masalasi bo‘yicha ishlar olib borilmoqda.\n\nIltimos, uchrashuv uchun Sizga qulay bo‘lgan sana va vaqt haqida ma’lumot berishingizni so‘raymiz.\n\nHurmat bilan,\nBosh direktor yordamchisi",
+    "status": "draft",
+    "recipient": "Министерство горнодобывающей промышленности и геологии",
+    "userId": "guest",
+    "createdAt": 1779556905628,
+    "updatedAt": 1779606828641
   }
 ];
 
 const defaultReports: Report[] = [
   {
-    id: 'r-1',
-    title: 'Отчет Минэнерго о ходе строительства распределительных сетей',
-    summary: 'В отчете подробно отражены этапы прокладки высоковольтных линий и проблемы с задержкой закупки силовых трансформаторов.',
-    status: 'submitted',
-    department: 'Сектор энергетики',
-    userId: 'guest',
-    createdAt: Date.now() - 3600000 * 5,
-    updatedAt: Date.now()
+    "id": "r-001",
+    "title": "Отчёт по критическому сырью",
+    "summary": "Отсутствует: юридические риски",
+    "status": "submitted",
+    "department": "Проектный офис",
+    "userId": "guest",
+    "createdAt": 1779585228641,
+    "updatedAt": 1779606828641
+  },
+  {
+    "id": "r-002",
+    "title": "Бюджет направления",
+    "summary": "Отсутствует: обоснование допущений",
+    "status": "submitted",
+    "department": "Финансы",
+    "userId": "guest",
+    "createdAt": 1779585228641,
+    "updatedAt": 1779606828641
+  },
+  {
+    "id": "r-003",
+    "title": "Еженедельный статус поручений",
+    "summary": "Все разделы заполнены.",
+    "status": "approved",
+    "department": "Руководство",
+    "userId": "guest",
+    "createdAt": 1779585228641,
+    "updatedAt": 1779606828641
   }
 ];
 
 const defaultComplaints: Complaint[] = [
   {
-    id: 'c-1',
-    title: 'Жалоба №14-А от ООО "КаргоЛинк" на затяжной таможенный досмотр груза',
-    description: 'Скоропортящаяся продукция компании удерживается на пограничном терминале свыше 48 часов.',
-    category: 'Логистика и Таможня',
-    status: 'pending',
-    department: 'Департамент логистики и закупок',
-    reporter: 'ООО "КаргоЛинк"',
-    deadline: '2026-05-25',
-    createdAt: Date.now() - 3600000 * 26,
-    updatedAt: Date.now(),
-    userId: 'guest'
+    "id": "c-001",
+    "title": "Задержка ответа по документу",
+    "description": "Нет ответа по юридическому заключению.",
+    "category": "Задержка ответа",
+    "status": "in_progress",
+    "department": "Юридический",
+    "reporter": "Сотрудник",
+    "deadline": "2026-05-24",
+    "createdAt": 1779534828641,
+    "updatedAt": 1779606828641,
+    "userId": "guest"
   }
 ];
 
 const defaultDepartments: Department[] = [
-  { id: 'd-1', name: 'Департамент IT и цифровизации', head: 'Ахмедов У.М.', tasksCount: 12, overdueCount: 0, kpi: 98 },
-  { id: 'd-2', name: 'Финансовый департамент', head: 'Каримова Н.М.', tasksCount: 7, overdueCount: 0, kpi: 90 },
-  { id: 'd-3', name: 'Департамент логистики и закупок', head: 'Туляганов Д.Х.', tasksCount: 15, overdueCount: 2, kpi: 74 },
-  { id: 'd-4', name: 'Аналитический сектор', head: 'Сабиров А.Р.', tasksCount: 4, overdueCount: 0, kpi: 95 }
+  {
+    "id": "d-000",
+    "name": "Руководство",
+    "head": "Генеральный директор",
+    "tasksCount": 3,
+    "overdueCount": 0,
+    "kpi": 100
+  },
+  {
+    "id": "d-001",
+    "name": "Геология",
+    "head": "Руководитель геологического отдела",
+    "tasksCount": 7,
+    "overdueCount": 0,
+    "kpi": 86
+  },
+  {
+    "id": "d-002",
+    "name": "Финансы",
+    "head": "Руководитель финансового отдела",
+    "tasksCount": 9,
+    "overdueCount": 0,
+    "kpi": 78
+  },
+  {
+    "id": "d-003",
+    "name": "Юридический",
+    "head": "Руководитель юридического отдела",
+    "tasksCount": 8,
+    "overdueCount": 0,
+    "kpi": 64
+  },
+  {
+    "id": "d-004",
+    "name": "Канцелярия",
+    "head": "Руководитель канцелярии",
+    "tasksCount": 5,
+    "overdueCount": 0,
+    "kpi": 91
+  },
+  {
+    "id": "d-005",
+    "name": "Проектный офис",
+    "head": "Руководитель проектного офиса",
+    "tasksCount": 6,
+    "overdueCount": 0,
+    "kpi": 82
+  },
+  {
+    "id": "d-006",
+    "name": "HR",
+    "head": "Руководитель HR",
+    "tasksCount": 4,
+    "overdueCount": 0,
+    "kpi": 74
+  }
 ];
 
 const defaultEmployeeTasks: EmployeeTask[] = [
   {
-    id: 'emp-1',
-    employeeName: 'Иванов С.П.',
-    role: 'Главный специалист',
-    department: 'Департамент IT и цифровизации',
-    taskTitle: 'Провести миграцию локальных БД СЭД в кластер',
-    status: 'active',
-    priority: 'high',
-    deadline: '2026-05-30',
-    kpiImpact: 15,
-    comments: ['Начал подготовительный бэкап таблиц.'],
-    userId: 'guest',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    "id": "et-001",
+    "employeeName": "Ответственный по геологии",
+    "role": "Специалист",
+    "department": "Геология",
+    "taskTitle": "Обновить таблицу запасов",
+    "status": "active",
+    "priority": "high",
+    "deadline": "2026-05-24",
+    "kpiImpact": 10,
+    "comments": [],
+    "userId": "guest",
+    "createdAt": 1779606828641,
+    "updatedAt": 1779606828641
+  },
+  {
+    "id": "et-002",
+    "employeeName": "Ответственный по бюджету",
+    "role": "Финансовый аналитик",
+    "department": "Финансы",
+    "taskTitle": "Подготовить финансовые допущения",
+    "status": "active",
+    "priority": "medium",
+    "deadline": "2026-05-23",
+    "kpiImpact": 10,
+    "comments": [],
+    "userId": "guest",
+    "createdAt": 1779606828641,
+    "updatedAt": 1779606828641
+  },
+  {
+    "id": "et-003",
+    "employeeName": "Ответственный юрист",
+    "role": "Юрист",
+    "department": "Юридический",
+    "taskTitle": "Дать заключение по лицензиям",
+    "status": "overdue",
+    "priority": "high",
+    "deadline": "2026-05-22",
+    "kpiImpact": 10,
+    "comments": [],
+    "userId": "guest",
+    "createdAt": 1779606828641,
+    "updatedAt": 1779606828641
   }
 ];
 
 const defaultKeepNotes: KeepNote[] = [
   {
-    id: 'note-1',
-    title: 'Срочный звонок в Кабмин',
-    content: 'Уточнить дату приемки протокола по субсидиям импорта логистики.',
-    color: 'bg-amber-50 border-amber-200',
-    tag: 'Важно',
-    isPinned: true,
-    userId: 'guest',
-    createdAt: Date.now(),
-    updatedAt: new Date().toLocaleDateString('ru-RU')
+    "id": "note-1",
+    "title": "Официальное обращение в министерство",
+    "content": "Hurmatli ... Sizga shuni ma’lum qilamizki ...",
+    "color": "bg-amber-50 border-amber-200",
+    "tag": "Шаблоны писем",
+    "isPinned": true,
+    "userId": "guest",
+    "createdAt": 1779606828641,
+    "updatedAt": "24.05.2026"
+  },
+  {
+    "id": "note-2",
+    "title": "Структура протокола встречи",
+    "content": "Тема, участники, повестка, решения, задачи, сроки, ответственные.",
+    "color": "bg-amber-50 border-amber-200",
+    "tag": "Регламенты",
+    "isPinned": true,
+    "userId": "guest",
+    "createdAt": 1779606828662,
+    "updatedAt": "24.05.2026"
   }
 ];
 
 const defaultDecisions: Decision[] = [
   {
-    id: 'dec-1',
-    referenceNo: '№ ТМК-048/2026',
-    title: 'О продлении льготных тарифов на транзит металлопроката по узлу Яллама',
-    category: 'Стратегическое',
-    date: '2026-05-20',
-    signer: 'Юсупов А.Т. (Генеральный директор)',
-    status: 'Действует',
-    summary: 'Утвердить льготный коэффициент 0.85 для всех резидентов СЭЗ до конца календарного года.',
-    userId: 'guest',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    "id": "dec-001",
+    "referenceNo": "DEC-001",
+    "title": "Продолжить подготовку отчёта по критическому сырью с отдельной проверкой юридических рисков.",
+    "category": "Организационное",
+    "date": "2026-05-23",
+    "signer": "Генеральный директор",
+    "status": "Действует",
+    "summary": "Продолжить подготовку отчёта по критическому сырью с отдельной проверкой юридических рисков.",
+    "userId": "guest",
+    "createdAt": 1779606828662,
+    "updatedAt": 1779606828662
   }
 ];
 
 const defaultRisks: ExecutiveRisk[] = [
   {
-    id: 'risk-1',
-    title: 'Задержка транзита стальных комплектующих на узле Яллама',
-    category: 'Логистика',
-    level: 'critical',
-    mitidgationPlan: 'Использовать резервный порт содействия и оформить таможенную гарантию.',
-    reporter: 'Туляганов Д.Х. (Сектор импорта/логистики)',
-    status: 'active',
-    userId: 'guest',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    "id": "k-001",
+    "title": "Регуляторные ограничения не подтверждены",
+    "category": "Финансовый",
+    "level": "high",
+    "mitidgationPlan": "Получить юридическое заключение до отправки отчёта.",
+    "reporter": "Ответственный юрист",
+    "status": "active",
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
+  },
+  {
+    "id": "k-002",
+    "title": "Бюджетные допущения неполные",
+    "category": "Финансовый",
+    "level": "medium",
+    "mitidgationPlan": "Добавить пояснения и сценарии.",
+    "reporter": "Ответственный по бюджету",
+    "status": "active",
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
   }
 ];
 
 const defaultReminders: RemindItem[] = [
   {
-    id: 'rem-1',
-    text: 'Собрать КПЭ-справку со 2-го сектора управления',
-    datetime: '2026-05-24T10:00',
-    method: 'Telegram',
-    status: 'pending',
-    userId: 'guest',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    "id": "rem-001",
+    "text": "Напомнить юридическому отделу",
+    "datetime": "2026-05-23T16:00",
+    "method": "Telegram",
+    "status": "pending",
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
+  },
+  {
+    "id": "rem-002",
+    "text": "Собрать ежедневные отчёты",
+    "datetime": "2026-05-23T17:30",
+    "method": "Telegram",
+    "status": "pending",
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
   }
 ];
 
 const defaultApprovals: ApprovalRequest[] = [
   {
-    id: 'app-1',
-    documentTitle: 'Запрос на субсидирование логистических расходов ООО "КаргоЛинк"',
-    documentType: 'Письмо',
-    applicant: 'Туляганов Д.Х. (Департамент логистики)',
-    status: 'pending',
-    urgency: 'urgent',
-    appointedSigners: ['Каримова Н.М. (Минфинансы)', 'Юсупов А.Т. (Генеральный директор)'],
-    currentSignerIndex: 0,
-    userId: 'guest',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    "id": "apr-001",
+    "documentTitle": "Согласование: Письмо #L-001",
+    "documentType": "Письмо",
+    "applicant": "Координатор проекта",
+    "status": "pending",
+    "urgency": "routine",
+    "appointedSigners": [
+      "Генеральный директор"
+    ],
+    "currentSignerIndex": 0,
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
+  },
+  {
+    "id": "apr-002",
+    "documentTitle": "Согласование: Отчет #R-001",
+    "documentType": "Отчет",
+    "applicant": "Координатор проекта",
+    "status": "pending",
+    "urgency": "routine",
+    "appointedSigners": [
+      "Генеральный директор"
+    ],
+    "currentSignerIndex": 0,
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
   }
 ];
 
 const defaultGuides: GuideItem[] = [
   {
-    id: 'guide-1',
-    title: 'Регламент создания исходящих писем в ведомства',
-    category: 'Инструкции',
-    summary: 'Правила согласования и отправки корреспонденции через единый СЭД портал ТМК.',
-    content: 'Все исходящие письма регистрируются в Архиве и визируются по схеме: Исполнитель -> Директор департамента -> Комплаенс -> Директор.',
-    userId: 'guest',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    "id": "kb-001",
+    "title": "Официальное обращение в министерство",
+    "category": "Шаблоны",
+    "summary": "Официальное обращение в министерство",
+    "content": "Hurmatli ... Sizga shuni ma’lum qilamizki ...",
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
+  },
+  {
+    "id": "kb-002",
+    "title": "Структура протокола встречи",
+    "category": "Правила ТМК",
+    "summary": "Структура протокола встречи",
+    "content": "Тема, участники, повестка, решения, задачи, сроки, ответственные.",
+    "userId": "guest",
+    "createdAt": 1779606828663,
+    "updatedAt": 1779606828663
   }
 ];
 
@@ -253,9 +433,23 @@ export function useTasks() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'tasks'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'tasks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+      const bootstrapFlag = `bootstrapped_tasks_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultTasks.forEach(async (t) => {
+          const { id, ...clean } = t;
+          try {
+            await addDoc(collection(db, 'users', uid, 'tasks'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap tasks error:", e);
+          }
+        });
+      }
+      setTasks(loaded.length > 0 ? loaded : defaultTasks);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'tasks'));
     return () => unsubscribe();
@@ -338,9 +532,23 @@ export function useMeetings() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'meetings'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'meetings'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMeetings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Meeting)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Meeting));
+      const bootstrapFlag = `bootstrapped_meetings_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultMeetings.forEach(async (m) => {
+          const { id, ...clean } = m;
+          try {
+            await addDoc(collection(db, 'users', uid, 'meetings'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap meetings error:", e);
+          }
+        });
+      }
+      setMeetings(loaded.length > 0 ? loaded : defaultMeetings);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'meetings'));
     return () => unsubscribe();
@@ -386,9 +594,23 @@ export function useLetters() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'letters'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'letters'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setLetters(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Letter)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Letter));
+      const bootstrapFlag = `bootstrapped_letters_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultLetters.forEach(async (l) => {
+          const { id, ...clean } = l;
+          try {
+            await addDoc(collection(db, 'users', uid, 'letters'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap letters error:", e);
+          }
+        });
+      }
+      setLetters(loaded.length > 0 ? loaded : defaultLetters);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'letters'));
     return () => unsubscribe();
@@ -434,9 +656,23 @@ export function useReports() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'reports'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'reports'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setReports(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
+      const bootstrapFlag = `bootstrapped_reports_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultReports.forEach(async (r) => {
+          const { id, ...clean } = r;
+          try {
+            await addDoc(collection(db, 'users', uid, 'reports'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap reports error:", e);
+          }
+        });
+      }
+      setReports(loaded.length > 0 ? loaded : defaultReports);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'reports'));
     return () => unsubscribe();
@@ -500,9 +736,23 @@ export function useComplaints() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'complaints'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'complaints'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setComplaints(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Complaint)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Complaint));
+      const bootstrapFlag = `bootstrapped_complaints_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultComplaints.forEach(async (c) => {
+          const { id, ...clean } = c;
+          try {
+            await addDoc(collection(db, 'users', uid, 'complaints'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap complaints error:", e);
+          }
+        });
+      }
+      setComplaints(loaded.length > 0 ? loaded : defaultComplaints);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'complaints'));
     return () => unsubscribe();
@@ -608,9 +858,23 @@ export function useEmployeeTasks() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'employeeTasks'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'employeeTasks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setEmployeeTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EmployeeTask)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EmployeeTask));
+      const bootstrapFlag = `bootstrapped_employeeTasks_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultEmployeeTasks.forEach(async (et) => {
+          const { id, ...clean } = et;
+          try {
+            await addDoc(collection(db, 'users', uid, 'employeeTasks'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap employeeTasks error:", e);
+          }
+        });
+      }
+      setEmployeeTasks(loaded.length > 0 ? loaded : defaultEmployeeTasks);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'employeeTasks'));
     return () => unsubscribe();
@@ -674,9 +938,23 @@ export function useKeepNotes() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'keepNotes'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'keepNotes'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setNotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as KeepNote)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as KeepNote));
+      const bootstrapFlag = `bootstrapped_keepNotes_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultKeepNotes.forEach(async (n) => {
+          const { id, ...clean } = n;
+          try {
+            await addDoc(collection(db, 'users', uid, 'keepNotes'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap keepNotes error:", e);
+          }
+        });
+      }
+      setNotes(loaded.length > 0 ? loaded : defaultKeepNotes);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'keepNotes'));
     return () => unsubscribe();
@@ -756,9 +1034,23 @@ export function useDecisions() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'decisions'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'decisions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setDecisions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Decision)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Decision));
+      const bootstrapFlag = `bootstrapped_decisions_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultDecisions.forEach(async (d) => {
+          const { id, ...clean } = d;
+          try {
+            await addDoc(collection(db, 'users', uid, 'decisions'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap decisions error:", e);
+          }
+        });
+      }
+      setDecisions(loaded.length > 0 ? loaded : defaultDecisions);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'decisions'));
     return () => unsubscribe();
@@ -822,9 +1114,23 @@ export function useRisks() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'risks'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'risks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setRisks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExecutiveRisk)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExecutiveRisk));
+      const bootstrapFlag = `bootstrapped_risks_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultRisks.forEach(async (r) => {
+          const { id, ...clean } = r;
+          try {
+            await addDoc(collection(db, 'users', uid, 'risks'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap risks error:", e);
+          }
+        });
+      }
+      setRisks(loaded.length > 0 ? loaded : defaultRisks);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'risks'));
     return () => unsubscribe();
@@ -888,9 +1194,23 @@ export function useReminders() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'reminders'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'reminders'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setReminders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RemindItem)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RemindItem));
+      const bootstrapFlag = `bootstrapped_reminders_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultReminders.forEach(async (r) => {
+          const { id, ...clean } = r;
+          try {
+            await addDoc(collection(db, 'users', uid, 'reminders'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap reminders error:", e);
+          }
+        });
+      }
+      setReminders(loaded.length > 0 ? loaded : defaultReminders);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'reminders'));
     return () => unsubscribe();
@@ -969,9 +1289,23 @@ export function useApprovals() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'approvals'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'approvals'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setApprovals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApprovalRequest)));
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApprovalRequest));
+      const bootstrapFlag = `bootstrapped_approvals_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultApprovals.forEach(async (a) => {
+          const { id, ...clean } = a;
+          try {
+            await addDoc(collection(db, 'users', uid, 'approvals'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap approvals error:", e);
+          }
+        });
+      }
+      setApprovals(loaded.length > 0 ? loaded : defaultApprovals);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'approvals'));
     return () => unsubscribe();
@@ -1068,18 +1402,21 @@ export function useGuides() {
       return;
     }
 
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'guides'));
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'guides'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       // If collection is empty, write initial data synchronously
       const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GuideItem));
-      if (loaded.length === 0) {
+      const bootstrapFlag = `bootstrapped_guides_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
         // Bootstrap sample guide asynchronously so we do not block thread
         defaultGuides.forEach(async (g) => {
           const { id, ...cleanSpec } = g;
           try {
-            await addDoc(collection(db, 'users', auth!.currentUser!.uid, 'guides'), {
+            await addDoc(collection(db, 'users', uid, 'guides'), {
               ...cleanSpec,
-              userId: auth!.currentUser!.uid
+              userId: uid
             });
           } catch (err) {}
         });
@@ -1214,4 +1551,128 @@ export function useSubReports() {
   };
 
   return { subReports, loading, addSubReport };
+}
+
+// Core Sync & Reset Engine API
+export async function syncAllData(uid: string | null) {
+  if (!uid || uid === 'guest') {
+    // Soft sync for guest: make sure keys are populated in localStorage
+    const keys = [
+      { key: 't_tasks', val: defaultTasks },
+      { key: 't_meetings', val: defaultMeetings },
+      { key: 't_letters', val: defaultLetters },
+      { key: 't_reports', val: defaultReports },
+      { key: 't_complaints', val: defaultComplaints },
+      { key: 'tmk_employee_tasks', val: defaultEmployeeTasks },
+      { key: 'executive_keep_notes', val: defaultKeepNotes },
+      { key: 'tmk_decisions', val: defaultDecisions },
+      { key: 'tmk_risks', val: defaultRisks },
+      { key: 'tmk_reminders', val: defaultReminders },
+      { key: 'tmk_approvals', val: defaultApprovals },
+      { key: 'executive_corporate_guides', val: defaultGuides },
+      { key: 't_departments', val: defaultDepartments }
+    ];
+    keys.forEach(({ key, val }) => {
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify(val));
+      }
+    });
+    return;
+  }
+
+  // Soft sync for authenticated Firestore
+  const targets = [
+    { name: 'tasks', data: defaultTasks },
+    { name: 'meetings', data: defaultMeetings },
+    { name: 'letters', data: defaultLetters },
+    { name: 'reports', data: defaultReports },
+    { name: 'complaints', data: defaultComplaints },
+    { name: 'employeeTasks', data: defaultEmployeeTasks },
+    { name: 'keepNotes', data: defaultKeepNotes },
+    { name: 'decisions', data: defaultDecisions },
+    { name: 'risks', data: defaultRisks },
+    { name: 'reminders', data: defaultReminders },
+    { name: 'approvals', data: defaultApprovals },
+    { name: 'guides', data: defaultGuides }
+  ];
+
+  for (const target of targets) {
+    const colRef = collection(db, 'users', uid, target.name);
+    const snap = await getDocs(colRef);
+    if (snap.empty) {
+      const bootstrapFlag = `bootstrapped_${target.name}_${uid}`;
+      localStorage.setItem(bootstrapFlag, 'true');
+      const promises = target.data.map(async (item) => {
+        const { id, ...cleanItem } = item;
+        return addDoc(colRef, {
+          ...cleanItem,
+          userId: uid
+        });
+      });
+      await Promise.all(promises);
+    }
+  }
+}
+
+export async function resetAllData(uid: string | null) {
+  if (!uid || uid === 'guest') {
+    // Hard reset for guest: overwrite keys in localStorage
+    localStorage.setItem('t_tasks', JSON.stringify(defaultTasks));
+    localStorage.setItem('t_meetings', JSON.stringify(defaultMeetings));
+    localStorage.setItem('t_letters', JSON.stringify(defaultLetters));
+    localStorage.setItem('t_reports', JSON.stringify(defaultReports));
+    localStorage.setItem('t_complaints', JSON.stringify(defaultComplaints));
+    localStorage.setItem('tmk_employee_tasks', JSON.stringify(defaultEmployeeTasks));
+    localStorage.setItem('executive_keep_notes', JSON.stringify(defaultKeepNotes));
+    localStorage.setItem('tmk_decisions', JSON.stringify(defaultDecisions));
+    localStorage.setItem('tmk_risks', JSON.stringify(defaultRisks));
+    localStorage.setItem('tmk_reminders', JSON.stringify(defaultReminders));
+    localStorage.setItem('tmk_approvals', JSON.stringify(defaultApprovals));
+    localStorage.setItem('executive_corporate_guides', JSON.stringify(defaultGuides));
+    localStorage.setItem('executive_mom_protocols', JSON.stringify([]));
+    localStorage.setItem('executive_sub_reports', JSON.stringify([]));
+    localStorage.setItem('t_departments', JSON.stringify(defaultDepartments));
+    return;
+  }
+
+  // Hard reset for authenticated Firestore
+  const targets = [
+    { name: 'tasks', data: defaultTasks },
+    { name: 'meetings', data: defaultMeetings },
+    { name: 'letters', data: defaultLetters },
+    { name: 'reports', data: defaultReports },
+    { name: 'complaints', data: defaultComplaints },
+    { name: 'employeeTasks', data: defaultEmployeeTasks },
+    { name: 'keepNotes', data: defaultKeepNotes },
+    { name: 'decisions', data: defaultDecisions },
+    { name: 'risks', data: defaultRisks },
+    { name: 'reminders', data: defaultReminders },
+    { name: 'approvals', data: defaultApprovals },
+    { name: 'guides', data: defaultGuides },
+    { name: 'protocols', data: [] },
+    { name: 'subReports', data: [] }
+  ];
+
+  for (const target of targets) {
+    const colRef = collection(db, 'users', uid, target.name);
+    const snap = await getDocs(colRef);
+    
+    // 1. Delete all existing docs
+    const deletePromises = snap.docs.map(d => deleteDoc(doc(db, 'users', uid, target.name, d.id)));
+    await Promise.all(deletePromises);
+
+    // 2. Set bootstrap flag and populate defaults (if any)
+    const bootstrapFlag = `bootstrapped_${target.name}_${uid}`;
+    localStorage.setItem(bootstrapFlag, 'true');
+    if (target.data.length > 0) {
+      const addPromises = target.data.map(async (item) => {
+        const { id, ...cleanItem } = item as any;
+        return addDoc(colRef, {
+          ...cleanItem,
+          userId: uid
+        });
+      });
+      await Promise.all(addPromises);
+    }
+  }
 }

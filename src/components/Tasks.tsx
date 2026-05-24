@@ -75,31 +75,31 @@ export default function Tasks() {
   if (loading) return <div className="p-8 text-center text-slate-400">Загрузка поручений...</div>;
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="ew-page p-6 lg:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       
       {/* Page Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200/60 pb-5">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-display">Задачи и поручения СЭД</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Полный контроль хода выполнения протокольных задач, поручений департаментов и рисков контроля.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">Задачи</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Контроль поручений и задач департаментов</p>
         </div>
 
         <div className="flex gap-3">
           {/* View Toggle Badges */}
-          <div className="flex border border-slate-250 rounded-xl p-1 bg-slate-100 text-slate-600 text-xs">
+          <div className="ew-tabs">
             <button 
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'hover:text-slate-900'}`}
+              className={`ew-tab flex items-center gap-1.5 ${viewMode === 'table' ? 'active' : ''}`}
             >
               <List size={14} />
-              <span>Таблица СЭД</span>
+              <span>Таблица</span>
             </button>
             <button 
               onClick={() => setViewMode('kanban')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-sm' : 'hover:text-slate-900'}`}
+              className={`ew-tab flex items-center gap-1.5 ${viewMode === 'kanban' ? 'active' : ''}`}
             >
               <LayoutGrid size={14} />
-              <span>Канбан-Доска</span>
+              <span>Канбан</span>
             </button>
           </div>
 

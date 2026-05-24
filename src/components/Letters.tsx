@@ -53,13 +53,12 @@ export default function Letters() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="ew-page p-6 lg:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       
       {/* Header */}
-      <header className="border-b border-slate-200/60 pb-5">
-        <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest font-display">Служба официальной переписки</span>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-display mt-1">Официальные Письма (Rasmiy Xatlar)</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Умный двуязычный перевод служебных писем и обращений на латинский и кириллический узбекский бизнес-стиль.</p>
+      <header className="pb-5">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">Письма</h1>
+        <p className="text-slate-500 text-sm mt-0.5">Двуязычный перевод служебных писем и обращений</p>
       </header>
 
       {/* Grid */}
