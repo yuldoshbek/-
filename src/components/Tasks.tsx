@@ -20,6 +20,7 @@ import {
 import { Task, EmployeeTask, RemindItem } from '../types';
 import EntityRelations from './EntityRelations';
 import AIAdvisor from './AIAdvisor';
+import { getAIHeaders } from '../lib/ai-context';
 
 export default function Tasks() {
   const { tasks, loading, addTask, updateTaskStatus, updateTaskDetails, deleteTask } = useTasks();
@@ -166,27 +167,20 @@ export default function Tasks() {
     setAiLoading(true);
     setAiResponse('');
     try {
-      const savedKeys = JSON.parse(localStorage.getItem('ew_api_keys') || '[]');
-      const activeProvider = localStorage.getItem('ew_active_ai_provider') || 'gemini';
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'x-active-provider': activeProvider
-      };
-      savedKeys.forEach((k: any) => {
-        if (k.key) headers[`x-${k.id}-key`] = k.key;
-      });
+      const headers = getAIHeaders();
 
       const res = await fetch('/api/ai/analyze-context', {
         method: 'POST',
         headers,
         body: JSON.stringify({
           prompt: `Пользователь просит помочь с формулировкой или анализом задачи: "${aiQuery}". Сформулируй 3 идеальных варианта поручения и выдели ключевые риски. Отвечай на русском языке.`,
-          systemPrompt: `Ты — ИИ-помощник по управлению задачами в Assistant OS.`
+          systemPrompt: `Ты — ИИ-помощник по управлению задачами в Assistant OS.`,
+          jsonMode: false
         })
       });
       if (res.ok) {
         const data = await res.json();
-        setAiResponse(data.insights ? data.insights.join('\n\n') : (data.error || JSON.stringify(data, null, 2)));
+        setAiResponse(data.text ? data.text : (data.insights ? data.insights.join('\n\n') : (data.error || JSON.stringify(data, null, 2))));
       } else {
         const err = await res.json().catch(() => ({}));
         setAiResponse(`Ошибка ИИ: ${err.error || 'Неизвестная ошибка'}`);

@@ -218,12 +218,13 @@ export default function Letters() {
         headers: getAIHeaders(),
         body: JSON.stringify({
           prompt: `Переведи следующий текст. Направление: ${direction === 'ru_uz' ? 'Русский на Узбекский (Латиница)' : 'Узбекский на Русский'}. Текст:\n"${translationInput}"`,
-          systemPrompt: 'Ты — профессиональный переводчик официальных государственных и служебных писем.'
+          systemPrompt: 'Ты — профессиональный переводчик официальных государственных и служебных писем.',
+          jsonMode: false
         })
       });
       if (res.ok) {
         const data = await res.json();
-        setTranslationOutput(data.insights ? data.insights.join('\n') : data.error || 'Ошибка');
+        setTranslationOutput(data.text ? data.text : (data.insights ? data.insights.join('\n') : data.error || 'Ошибка'));
       } else {
         throw new Error();
       }

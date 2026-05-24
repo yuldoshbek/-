@@ -134,12 +134,13 @@ export default function Documents() {
         headers: getAIHeaders(),
         body: JSON.stringify({
           prompt: `Пользователь ищет ответ в базе знаний на вопрос: "${aiSearchQuery}". Просканируй следующие материалы: ${JSON.stringify(guides)}. Ответь развернуто на русском языке, указав подходящий регламент.`,
-          systemPrompt: 'Ты — ИИ-поиск по корпоративной базе знаний Assistant OS.'
+          systemPrompt: 'Ты — ИИ-поиск по корпоративной базе знаний Assistant OS.',
+          jsonMode: false
         })
       });
       if (res.ok) {
         const data = await res.json();
-        setAiSearchResponse(data.insights ? data.insights.join('\n') : (data.error || JSON.stringify(data, null, 2)));
+        setAiSearchResponse(data.text ? data.text : (data.insights ? data.insights.join('\n') : (data.error || JSON.stringify(data, null, 2))));
       } else {
         throw new Error();
       }

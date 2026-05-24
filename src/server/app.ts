@@ -92,10 +92,14 @@ const generateAICompletion = async ({
       const model = modelHeader || 'gpt-4o-mini';
       const url = 'https://api.openai.com/v1/chat/completions';
       const messages = [];
+      let finalPrompt = prompt;
+      if (jsonMode && !finalPrompt.toLowerCase().includes('json') && !fullSystemPrompt.toLowerCase().includes('json')) {
+        finalPrompt += '\n\nIMPORTANT: You must return a valid JSON object.';
+      }
       if (fullSystemPrompt) {
         messages.push({ role: 'system', content: fullSystemPrompt });
       }
-      messages.push({ role: 'user', content: prompt });
+      messages.push({ role: 'user', content: finalPrompt });
       
       const payload = {
         model,
@@ -162,10 +166,14 @@ const generateAICompletion = async ({
       const model = modelHeader || 'deepseek-chat';
       const url = 'https://api.deepseek.com/chat/completions';
       const messages = [];
+      let finalPrompt = prompt;
+      if (jsonMode && !finalPrompt.toLowerCase().includes('json') && !fullSystemPrompt.toLowerCase().includes('json')) {
+        finalPrompt += '\n\nIMPORTANT: You must return a valid JSON object.';
+      }
       if (fullSystemPrompt) {
         messages.push({ role: 'system', content: fullSystemPrompt });
       }
-      messages.push({ role: 'user', content: prompt });
+      messages.push({ role: 'user', content: finalPrompt });
       
       const payload = {
         model,
@@ -324,14 +332,18 @@ Return as JSON:
 
 app.post("/api/ai/analyze-context", async (req, res) => {
   try {
-    const { prompt, systemPrompt } = req.body;
+    const { prompt, systemPrompt, jsonMode = true } = req.body;
     const data = await generateAICompletion({
       prompt,
       systemPrompt,
       req,
-      jsonMode: true
+      jsonMode
     });
-    res.json(data);
+    if (typeof data === 'string') {
+      res.json({ text: data });
+    } else {
+      res.json(data);
+    }
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message });

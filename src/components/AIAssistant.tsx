@@ -73,16 +73,7 @@ export default function AIAssistant() {
     };
 
     try {
-      const activeProvider = localStorage.getItem('ew_active_ai_provider') || 'gemini';
-      const savedKeys = JSON.parse(localStorage.getItem('ew_api_keys') || '[]');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'x-active-provider': activeProvider
-      };
-      savedKeys.forEach((k: any) => {
-        if (k.key) headers[`x-${k.id}-key`] = k.key;
-      });
-
+      const headers = getAIHeaders();
       const promptTextToSend = `Запрос: "${textToSend}"\n\nСостояние системы:\n${JSON.stringify(systemContext, null, 2)}`;
       
       const res = await fetch('/api/ai/analyze-context', {
@@ -90,14 +81,18 @@ export default function AIAssistant() {
         headers,
         body: JSON.stringify({
           prompt: promptTextToSend,
-          systemPrompt: systemPrompts[activeTab]
+          systemPrompt: systemPrompts[activeTab],
+          jsonMode: false
         })
       });
 
       const data = await res.json();
       let responseText = '';
 
-      if (data.insights) {
+      if (data.text) {
+        responseText = data.text;
+        logAIUsage('/api/ai/analyze-context', 'success', promptTextToSend.length, responseText.length);
+      } else if (data.insights) {
         responseText = data.insights.join('\n\n');
         logAIUsage('/api/ai/analyze-context', 'success', promptTextToSend.length, responseText.length);
       } else {
