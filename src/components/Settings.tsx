@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Key, BarChart3, Database, Palette, Save, Eye, EyeOff, RefreshCw, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-react';
+import { User, Key, BarChart3, Database, Palette, Save, Eye, EyeOff, RefreshCw, CheckCircle2, AlertTriangle, Trash2, Cpu, Sliders } from 'lucide-react';
 import { auth, googleSignIn } from '../firebase';
 import { syncAllData, resetAllData } from '../lib/hooks';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -14,13 +14,88 @@ interface ApiKeyEntry {
   lastUsed: string;
 }
 
+const MODELS_LIST = {
+  gemini: [
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Сверхбыстрая и экономичная модель для базовых задач' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Интеллектуальная модель для сложного анализа и логики' }
+  ],
+  openai: [
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: 'Оптимизированная по скорости и цене модель от OpenAI' },
+    { id: 'gpt-4o', name: 'GPT-4o Full', desc: 'Универсальная флагманская модель для любых задач' }
+  ],
+  anthropic: [
+    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', desc: 'Быстрая и точная модель с лаконичными ответами' },
+    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', desc: 'Флагман от Anthropic для глубокого кодинга и анализа' }
+  ],
+  deepseek: [
+    { id: 'deepseek-chat', name: 'DeepSeek Chat (V3)', desc: 'Производительная и экономичная модель общего назначения' },
+    { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (R1)', desc: 'Рассуждающая модель для сложных логических вычислений' }
+  ]
+};
+
 export default function Settings() {
-  const [activeSection, setActiveSection] = useState<'profile' | 'api' | 'usage' | 'database' | 'theme'>('profile');
+  const [activeSection, setActiveSection] = useState<string>('profile');
   const [syncing, setSyncing] = useState(false);
   const [themeVariant, setThemeVariant] = useState(() => localStorage.getItem('executive_theme') || 'hybrid');
   const [testingKeyId, setTestingKeyId] = useState<string | null>(null);
   
   const { domain, setDomain } = useWorkspace();
+
+  const [preferredModels, setPreferredModels] = useState<{ [key: string]: string }>(() => {
+    const saved = localStorage.getItem('ew_preferred_models');
+    return saved ? JSON.parse(saved) : {
+      gemini: 'gemini-2.5-flash',
+      openai: 'gpt-4o-mini',
+      anthropic: 'claude-3-5-haiku-20241022',
+      deepseek: 'deepseek-chat'
+    };
+  });
+
+  const [aiTemperature, setAiTemperature] = useState<number>(() => {
+    return parseFloat(localStorage.getItem('ew_ai_temperature') || '0.4');
+  });
+
+  const [aiBudgetLimit, setAiBudgetLimit] = useState<number>(() => {
+    return parseFloat(localStorage.getItem('ew_ai_budget_limit') || '10.0');
+  });
+
+  const [aiTotalCost, setAiTotalCost] = useState<number>(() => {
+    return parseFloat(localStorage.getItem('ew_ai_total_cost') || '0.0');
+  });
+
+  const [customInstructions, setCustomInstructions] = useState<string>(() => {
+    return localStorage.getItem('ew_ai_custom_instructions') || '';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ew_preferred_models', JSON.stringify(preferredModels));
+  }, [preferredModels]);
+
+  useEffect(() => {
+    localStorage.setItem('ew_ai_temperature', aiTemperature.toString());
+  }, [aiTemperature]);
+
+  useEffect(() => {
+    localStorage.setItem('ew_ai_budget_limit', aiBudgetLimit.toString());
+  }, [aiBudgetLimit]);
+
+  useEffect(() => {
+    localStorage.setItem('ew_ai_total_cost', aiTotalCost.toString());
+  }, [aiTotalCost]);
+
+  useEffect(() => {
+    localStorage.setItem('ew_ai_custom_instructions', customInstructions);
+  }, [customInstructions]);
+
+  const handleResetUsage = () => {
+    if (window.confirm("Вы действительно хотите обнулить счетчики использования и очистить журнал запросов?")) {
+      const emptyUsage = { usedRequests: 0, usedTokens: 0, errors: 0, history: [] };
+      localStorage.setItem('ew_ai_usage', JSON.stringify(emptyUsage));
+      localStorage.setItem('ew_ai_total_cost', '0.0');
+      setAiUsage(emptyUsage);
+      setAiTotalCost(0.0);
+    }
+  };
 
   // API Keys state with fallback/merge support for Anthropic and DeepSeek
   const [apiKeys, setApiKeys] = useState<ApiKeyEntry[]>(() => {
@@ -190,11 +265,10 @@ export default function Settings() {
   };
 
   const sections = [
-    { id: 'profile' as const, label: 'Профиль', icon: <User size={16} /> },
-    { id: 'api' as const, label: 'API Ключи', icon: <Key size={16} /> },
-    { id: 'usage' as const, label: 'Расход ресурсов', icon: <BarChart3 size={16} /> },
-    { id: 'database' as const, label: 'База данных', icon: <Database size={16} /> },
-    { id: 'theme' as const, label: 'Оформление', icon: <Palette size={16} /> },
+    { id: 'profile', label: 'Профиль', icon: <User size={16} /> },
+    { id: 'ai_control', label: 'Центр управления ИИ', icon: <Cpu size={16} /> },
+    { id: 'database', label: 'База данных', icon: <Database size={16} /> },
+    { id: 'theme', label: 'Оформление', icon: <Palette size={16} /> },
   ];
 
   const usageBar = (used: number, limit: number, color: string) => {
@@ -314,18 +388,72 @@ export default function Settings() {
             </div>
           )}
 
-          {/* ═══ API KEYS ═══ */}
-          {activeSection === 'api' && (
-            <div className="space-y-4">
-              <div className="ew-card p-6 space-y-5">
-                <h2 className="text-lg font-bold text-slate-900 font-display">API Ключи</h2>
-                <p className="text-sm text-slate-500">Управление токенами доступа для ИИ-сервисов и внешних интеграций.</p>
+          {/* ═══ AI CONTROL CENTER ═══ */}
+          {activeSection === 'ai_control' && (
+            <div className="space-y-6">
+              {/* 1. KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="ew-card p-5 bg-slate-50 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                    <Cpu size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Активный ИИ</span>
+                    <span className="text-sm font-bold text-slate-800 truncate block">
+                      {activeProvider === 'gemini' && 'Google Gemini'}
+                      {activeProvider === 'openai' && 'OpenAI (ChatGPT)'}
+                      {activeProvider === 'anthropic' && 'Claude (Anthropic)'}
+                      {activeProvider === 'deepseek' && 'DeepSeek'}
+                    </span>
+                    <span className="text-xs text-slate-500 block font-mono mt-0.5 truncate">
+                      {preferredModels[activeProvider] || 'default'}
+                    </span>
+                  </div>
+                </div>
 
-                {/* Active AI Provider Switcher */}
-                <div className="mb-6 p-4 bg-blue-50/50 border border-blue-100/60 rounded-xl space-y-2">
-                  <label className="block text-xs font-bold text-blue-800 uppercase tracking-wider">Активный ИИ-провайдер</label>
-                  <p className="text-[11px] text-slate-500">Выберите, какая языковая модель будет выполнять анализ, писать письма, протоколировать встречи и вести диалог в чате.</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                <div className="ew-card p-5 bg-slate-50 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Лимит бюджета (USD)</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        ${aiTotalCost.toFixed(4)} / ${aiBudgetLimit.toFixed(2)}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-slate-500 font-mono">
+                      {Math.min(100, Math.round((aiTotalCost / aiBudgetLimit) * 100))}%
+                    </span>
+                  </div>
+                  {usageBar(aiTotalCost, aiBudgetLimit, aiTotalCost >= aiBudgetLimit ? 'bg-rose-500' : 'bg-blue-600')}
+                </div>
+
+                <div className="ew-card p-5 bg-slate-50 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+                    <BarChart3 size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Использование</span>
+                    <span className="text-sm font-bold text-slate-800">
+                      {aiUsage.usedRequests} запр. / {aiUsage.errors} ош.
+                    </span>
+                    <span className="text-xs text-slate-500 block font-mono mt-0.5">
+                      ~{(aiUsage.usedTokens || 0).toLocaleString()} токенов
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Main Grid: Model Tuning + Limits Control */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Left Card: Models & Providers */}
+                <div className="ew-card p-6 space-y-6">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 font-display">Настройки Провайдеров и Моделей</h3>
+                    <p className="text-xs text-slate-500 mt-1">Выберите активного провайдера, настройте модель и введите ключ доступа.</p>
+                  </div>
+
+                  {/* Provider Radio Selector */}
+                  <div className="grid grid-cols-2 gap-2">
                     {[
                       { id: 'gemini', name: 'Google Gemini', icon: '♊' },
                       { id: 'openai', name: 'OpenAI (ChatGPT)', icon: '🧠' },
@@ -336,148 +464,213 @@ export default function Settings() {
                         key={p.id}
                         type="button"
                         onClick={() => changeActiveProvider(p.id)}
-                        className={`px-3 py-2 rounded-lg border text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          activeProvider === p.id 
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/20' 
+                        className={`p-3 rounded-xl border text-xs font-bold text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                          activeProvider === p.id
+                            ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm shadow-blue-500/5'
                             : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                         }`}
                       >
-                        <span>{p.icon}</span>
-                        <span>{p.name}</span>
+                        <span className="text-base">{p.icon}</span>
+                        <div>
+                          <p className="font-bold">{p.name}</p>
+                          <span className="text-[9px] text-slate-400 font-normal block">
+                            {activeProvider === p.id ? '✓ Активен' : 'Клик для активации'}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
-                </div>
 
-                <div className="space-y-3">
-                  {apiKeys.map(entry => (
-                    <div key={entry.id} className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl group">
-                      <Key size={16} className="text-slate-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center mb-1">
-                          <p className="text-xs font-bold text-slate-700">{entry.name}</p>
-                          <div className="flex items-center gap-2">
-                            {entry.lastUsed && entry.lastUsed !== 'Не использовался' && (
-                              <span className="text-[9px] text-slate-400 font-medium">Проверен: {entry.lastUsed}</span>
-                            )}
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                              entry.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                            }`}>
-                              {entry.status === 'active' ? 'Активен' : 'Ошибка'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <input
-                            type={visibleKeys.has(entry.id) ? 'text' : 'password'}
-                            value={entry.key}
-                            onChange={e => updateKey(entry.id, e.target.value)}
-                            placeholder="Вставьте ключ..."
-                            className="flex-1 text-xs font-mono p-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400"
-                          />
-                          <button
-                            onClick={() => toggleKeyVisibility(entry.id)}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 rounded"
-                          >
-                            {visibleKeys.has(entry.id) ? <EyeOff size={14} /> : <Eye size={14} />}
-                          </button>
-                          <button
-                            onClick={() => handleTestKey(entry)}
-                            disabled={testingKeyId !== null}
-                            className="px-2.5 py-1.5 bg-white hover:bg-slate-100 border text-slate-600 disabled:opacity-50 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-sm"
-                          >
-                            {testingKeyId === entry.id ? <RefreshCw size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-                            Тест
-                          </button>
-                          {entry.id !== 'gemini' && entry.id !== 'openai' && (
-                            <button
-                              onClick={() => deleteKey(entry.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-500 rounded opacity-0 group-hover:opacity-100 shrink-0"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                  {/* Active Provider specific configuration card */}
+                  <div className="p-4 bg-slate-50 rounded-xl space-y-4 border border-slate-100">
+                    <div className="flex items-center gap-2 border-b border-slate-200/60 pb-3">
+                      <span className="text-lg">
+                        {activeProvider === 'gemini' && '♊'}
+                        {activeProvider === 'openai' && '🧠'}
+                        {activeProvider === 'anthropic' && '🦉'}
+                        {activeProvider === 'deepseek' && '🐳'}
+                      </span>
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                        Конфигурация {activeProvider.toUpperCase()}
+                      </h4>
+                    </div>
+
+                    {/* Model Select */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Выбор языковой модели</label>
+                      <select
+                        value={preferredModels[activeProvider] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPreferredModels(prev => ({ ...prev, [activeProvider]: val }));
+                        }}
+                        className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono"
+                      >
+                        {(MODELS_LIST[activeProvider as keyof typeof MODELS_LIST] || []).map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-400 leading-normal italic mt-1">
+                        {(MODELS_LIST[activeProvider as keyof typeof MODELS_LIST] || []).find(m => m.id === preferredModels[activeProvider])?.desc}
+                      </p>
+                    </div>
+
+                    {/* API Key Input */}
+                    {apiKeys.find(k => k.id === activeProvider) && (
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-xs font-bold text-slate-700">API Ключ</label>
+                          {apiKeys.find(k => k.id === activeProvider)?.lastUsed && apiKeys.find(k => k.id === activeProvider)?.lastUsed !== 'Не использовался' && (
+                            <span className="text-[9px] text-slate-400 font-mono">Проверен: {apiKeys.find(k => k.id === activeProvider)?.lastUsed}</span>
                           )}
                         </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type={visibleKeys.has(activeProvider) ? 'text' : 'password'}
+                            value={apiKeys.find(k => k.id === activeProvider)?.key || ''}
+                            onChange={e => updateKey(activeProvider, e.target.value)}
+                            placeholder={`Введите API Ключ для ${activeProvider}...`}
+                            className="flex-1 text-xs font-mono p-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleKeyVisibility(activeProvider)}
+                            className="p-2 text-slate-400 hover:text-slate-600 rounded bg-white border border-slate-200"
+                          >
+                            {visibleKeys.has(activeProvider) ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleTestKey(apiKeys.find(k => k.id === activeProvider)!)}
+                            disabled={testingKeyId !== null}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1.5 shrink-0 shadow-sm"
+                          >
+                            {testingKeyId === activeProvider ? <RefreshCw size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                            Тест
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add new key */}
-                <div className="border-t pt-4 space-y-3">
-                  <p className="text-xs font-bold text-slate-500 uppercase">Добавить новый ключ</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newKeyName}
-                      onChange={e => setNewKeyName(e.target.value)}
-                      placeholder="Название сервиса"
-                      className="flex-1 text-xs p-2.5 border rounded-xl"
-                    />
-                    <input
-                      type="text"
-                      value={newKeyValue}
-                      onChange={e => setNewKeyValue(e.target.value)}
-                      placeholder="API ключ"
-                      className="flex-1 text-xs font-mono p-2.5 border rounded-xl"
-                    />
-                    <button onClick={addKey} className="ew-btn ew-btn-primary whitespace-nowrap">
-                      <Save size={14} /> Сохранить
-                    </button>
+                    )}
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* ═══ USAGE ═══ */}
-          {activeSection === 'usage' && (
-            <div className="ew-card p-6 space-y-6">
-              <h2 className="text-lg font-bold text-slate-900 font-display">Расход ресурсов ИИ</h2>
-              <p className="text-sm text-slate-500">Мониторинг использования ИИ-запросов и лимитов за текущий месяц.</p>
- 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { label: 'ИИ-запросы (Всего)', used: aiUsage.usedRequests, limit: 1000, color: 'bg-blue-500', icon: <BarChart3 size={16} className="text-blue-500" /> },
-                  { label: 'Оценочный токен-счетчик', used: aiUsage.usedTokens, limit: 5000000, color: 'bg-indigo-500', icon: <Key size={16} className="text-indigo-500" /> },
-                  { label: 'Ошибки запросов', used: aiUsage.errors, limit: 100, color: 'bg-rose-500', icon: <AlertTriangle size={16} className="text-rose-500" /> },
-                  { label: 'Синхронизации БД', used: 12, limit: 100, color: 'bg-emerald-500', icon: <Database size={16} className="text-emerald-500" /> },
-                ].map((item, i) => (
-                  <div key={i} className="p-5 bg-slate-50 rounded-xl space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {item.icon}
-                        <span className="text-xs font-bold text-slate-700">{item.label}</span>
-                      </div>
-                      <span className="text-xs font-mono text-slate-500">{item.used.toLocaleString()}/{item.limit.toLocaleString()}</span>
+                {/* Right Card: Fine Tuning & Limits */}
+                <div className="ew-card p-6 space-y-6">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 font-display">Тонкая настройка ИИ и Лимиты</h3>
+                    <p className="text-xs text-slate-500 mt-1">Регулируйте креативность модели, задавайте глобальные промпты и контролируйте расходы.</p>
+                  </div>
+
+                  {/* Temperature slider */}
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                        <Sliders size={14} className="text-slate-400" />
+                        Температура ИИ (Креативность)
+                      </label>
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-mono font-bold text-xs rounded">
+                        {aiTemperature.toFixed(1)}
+                      </span>
                     </div>
-                    {usageBar(item.used, item.limit, item.color)}
-                    <p className="text-[10px] text-slate-400">
-                      Осталось: {(item.limit - item.used).toLocaleString()} ({Math.max(0, Math.round(((item.limit - item.used) / item.limit) * 100))}%)
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="1.0"
+                      step="0.1"
+                      value={aiTemperature}
+                      onChange={(e) => setAiTemperature(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                    <div className="text-[10px] text-slate-500 italic leading-normal">
+                      {aiTemperature <= 0.2 && "✓ Строгий режим (рекомендуется для анализа данных, протоколов и сложных таблиц)"}
+                      {aiTemperature > 0.2 && aiTemperature <= 0.6 && "✓ Сбалансированный режим (подходит для писем, писем-ответов и делового стиля)"}
+                      {aiTemperature > 0.6 && "✓ Креативный режим (полезно для генерации идей, креативных резюме и писем)"}
+                    </div>
+                  </div>
+
+                  {/* Custom system prompt overriding */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Глобальные системные инструкции</label>
+                    <textarea
+                      rows={3}
+                      value={customInstructions}
+                      onChange={(e) => setCustomInstructions(e.target.value)}
+                      placeholder="Например: 'Всегда отвечай только на русском языке', 'Общайся в подчеркнуто вежливом деловом тоне', 'Будь максимально кратким, избегай лишних предисловий'."
+                      className="w-full text-xs p-3 border border-slate-200 rounded-xl bg-slate-50/50 focus:outline-none focus:border-blue-400 placeholder:text-slate-400"
+                    />
+                    <p className="text-[9px] text-slate-400 leading-normal">
+                      Эти инструкции будут внедрены в системный промпт ИИ и применены ко всем вызовам во всех модулях.
                     </p>
                   </div>
-                ))}
+
+                  {/* Budget Limit Setup */}
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Лимит бюджета в USD</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">$</span>
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.5"
+                          value={aiBudgetLimit}
+                          onChange={(e) => setAiBudgetLimit(Math.max(0.1, parseFloat(e.target.value) || 10.0))}
+                          className="w-full text-xs p-1.5 pl-6 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 font-bold font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <button
+                        type="button"
+                        onClick={handleResetUsage}
+                        className="w-full py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <Trash2 size={13} />
+                        Сбросить счетчики
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* AI Request History Log */}
-              <div className="border-t pt-6 space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 font-display">Журнал запросов ИИ (Последние 50)</h3>
-                <div className="overflow-x-auto border border-slate-100 rounded-xl max-h-60 overflow-y-auto">
+              {/* 3. Transaction Log Table */}
+              <div className="ew-card p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 font-display">Журнал запросов и транзакций ИИ</h3>
+                    <p className="text-xs text-slate-500 mt-1">Детализация последних 50 вызовов API с расчетом стоимости в реальном времени.</p>
+                  </div>
+                  <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-slate-500 font-mono text-[10px] font-bold uppercase">
+                    Последние 50
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-100 rounded-xl max-h-80 overflow-y-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase sticky top-0">
                         <th className="p-3 bg-slate-50">Время</th>
                         <th className="p-3 bg-slate-50">Эндпоинт</th>
+                        <th className="p-3 bg-slate-50">Модель</th>
                         <th className="p-3 bg-slate-50">Статус</th>
                         <th className="p-3 bg-slate-50 text-right">Токены</th>
+                        <th className="p-3 bg-slate-50 text-right">Стоимость USD</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
                       {aiUsage.history && aiUsage.history.length > 0 ? (
                         aiUsage.history.map((log: any) => (
                           <tr key={log.id} className="hover:bg-slate-50/50">
-                            <td className="p-3 text-slate-500">{new Date(log.timestamp).toLocaleTimeString('ru-RU')}</td>
-                            <td className="p-3 font-semibold text-slate-700">{log.endpoint}</td>
+                            <td className="p-3 text-slate-500">
+                              {new Date(log.timestamp).toLocaleTimeString('ru-RU')}
+                            </td>
+                            <td className="p-3 font-semibold text-slate-700">
+                              {log.endpoint}
+                            </td>
+                            <td className="p-3 text-slate-600 text-[10px] max-w-[130px] truncate">
+                              {log.model || 'Unknown'}
+                            </td>
                             <td className="p-3">
                               <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
                                 log.status === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
@@ -485,24 +678,31 @@ export default function Settings() {
                                 {log.status === 'success' ? 'Успешно' : 'Ошибка'}
                               </span>
                             </td>
-                            <td className="p-3 text-right text-slate-600">{log.tokens.toLocaleString()}</td>
+                            <td className="p-3 text-right text-slate-600">
+                              {log.tokens ? log.tokens.toLocaleString() : 0}
+                            </td>
+                            <td className="p-3 text-right font-bold text-slate-800">
+                              {log.cost ? `$${log.cost.toFixed(5)}` : '$0.00000'}
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="p-4 text-center text-slate-400 font-sans">Журнал запросов пуст.</td>
+                          <td colSpan={6} className="p-6 text-center text-slate-400 font-sans">
+                            Журнал запросов пуст.
+                          </td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-              </div>
- 
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3">
-                <AlertTriangle size={16} className="text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-800">
-                  Данные расхода обновляются в реальном времени. При достижении лимита система переключается на fallback-режим с локальными шаблонами.
-                </p>
+
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3">
+                  <AlertTriangle size={16} className="text-blue-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-800">
+                    При превышении лимита бюджета ИИ бэкенд блокирует запросы с кодом 403. Сбросьте счетчики или увеличьте лимит, чтобы восстановить полный доступ к функциям ИИ.
+                  </p>
+                </div>
               </div>
             </div>
           )}

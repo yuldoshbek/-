@@ -21,6 +21,10 @@ const generateAICompletion = async ({
   const activeProvider = (req.headers['x-active-provider'] as string) || 'gemini';
   const customKey = req.headers[`x-${activeProvider}-key`] as string;
   
+  const modelHeader = req.headers['x-ai-model'] as string;
+  const tempHeader = req.headers['x-ai-temperature'] as string;
+  const customInstructionsEncoded = req.headers['x-ai-custom-instructions'] as string;
+
   let apiKey = customKey;
   if (!apiKey) {
     if (activeProvider === 'gemini') apiKey = process.env.GEMINI_API_KEY;
@@ -33,17 +37,39 @@ const generateAICompletion = async ({
     throw new Error(`API key for ${activeProvider} is missing. Please check Settings.`);
   }
 
+  const temperature = tempHeader ? parseFloat(tempHeader) : 0.4;
+  
+  let customInstructions = '';
+  if (customInstructionsEncoded) {
+    try {
+      customInstructions = decodeURIComponent(Buffer.from(customInstructionsEncoded, 'base64').toString('utf-8'));
+    } catch (e) {
+      console.error('Failed to decode custom instructions:', e);
+    }
+  }
+
+  let fullSystemPrompt = systemPrompt || '';
+  if (customInstructions) {
+    fullSystemPrompt = fullSystemPrompt
+      ? `${fullSystemPrompt}\n\n[Дополнительные инструкции пользователя]:\n${customInstructions}`
+      : customInstructions;
+  }
+
   switch (activeProvider) {
     case 'gemini': {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const model = modelHeader || 'gemini-2.5-flash';
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const payload = {
         contents: [
           {
             role: 'user',
-            parts: [{ text: `${systemPrompt ? systemPrompt + "\n\n" : ""}Request:\n${prompt}` }]
+            parts: [{ text: `${fullSystemPrompt ? fullSystemPrompt + "\n\n" : ""}Request:\n${prompt}` }]
           }
         ],
-        generationConfig: jsonMode ? { responseMimeType: "application/json" } : undefined
+        generationConfig: {
+          temperature,
+          ...(jsonMode ? { responseMimeType: "application/json" } : {})
+        }
       };
       
       const response = await fetch(url, {
@@ -63,16 +89,18 @@ const generateAICompletion = async ({
     }
     
     case 'openai': {
+      const model = modelHeader || 'gpt-4o-mini';
       const url = 'https://api.openai.com/v1/chat/completions';
       const messages = [];
-      if (systemPrompt) {
-        messages.push({ role: 'system', content: systemPrompt });
+      if (fullSystemPrompt) {
+        messages.push({ role: 'system', content: fullSystemPrompt });
       }
       messages.push({ role: 'user', content: prompt });
       
       const payload = {
-        model: 'gpt-4o-mini',
+        model,
         messages,
+        temperature,
         response_format: jsonMode ? { type: "json_object" } : undefined
       };
       
@@ -96,15 +124,17 @@ const generateAICompletion = async ({
     }
 
     case 'anthropic': {
+      const model = modelHeader || 'claude-3-5-haiku-20241022';
       const url = 'https://api.anthropic.com/v1/messages';
       const userPrompt = jsonMode 
         ? `${prompt}\n\nIMPORTANT: Return ONLY a valid JSON object. Do not include markdown code block wrapping (like \`\`\`json). Just return the JSON object directly.`
         : prompt;
 
       const payload = {
-        model: 'claude-3-5-haiku-20241022',
+        model,
         max_tokens: 4000,
-        system: systemPrompt || undefined,
+        temperature,
+        system: fullSystemPrompt || undefined,
         messages: [{ role: 'user', content: userPrompt }]
       };
       
@@ -129,16 +159,18 @@ const generateAICompletion = async ({
     }
 
     case 'deepseek': {
+      const model = modelHeader || 'deepseek-chat';
       const url = 'https://api.deepseek.com/chat/completions';
       const messages = [];
-      if (systemPrompt) {
-        messages.push({ role: 'system', content: systemPrompt });
+      if (fullSystemPrompt) {
+        messages.push({ role: 'system', content: fullSystemPrompt });
       }
       messages.push({ role: 'user', content: prompt });
       
       const payload = {
-        model: 'deepseek-chat',
+        model,
         messages,
+        temperature,
         response_format: jsonMode ? { type: "json_object" } : undefined
       };
       
@@ -185,6 +217,15 @@ app.use((req, res, next) => {
      const activeProvider = (req.headers['x-active-provider'] as string) || 'gemini';
      const customKey = req.headers[`x-${activeProvider}-key`] as string;
      
+     // Enforce budget limit checks on server side
+     const totalCost = parseFloat(req.headers['x-ai-total-cost'] as string) || 0;
+     const budgetLimit = parseFloat(req.headers['x-ai-budget-limit'] as string) || 999999;
+     
+     if (totalCost >= budgetLimit) {
+       res.status(403).json({ error: `Превышен установленный лимит бюджета ИИ ($${budgetLimit.toFixed(2)}). Пожалуйста, увеличьте лимит в настройках Центра управления ИИ.` });
+       return;
+     }
+
      let apiKey = customKey;
      if (!apiKey) {
        if (activeProvider === 'gemini') apiKey = process.env.GEMINI_API_KEY;

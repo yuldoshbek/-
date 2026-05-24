@@ -1902,13 +1902,46 @@ export function logAIUsage(endpoint: string, status: 'success' | 'error', prompt
   if (status === 'error') {
     usage.errors += 1;
   }
+
+  // Cost calculation based on selected model
+  const activeProvider = localStorage.getItem('ew_active_ai_provider') || 'gemini';
+  const preferredModelsSaved = localStorage.getItem('ew_preferred_models');
+  const preferredModels = preferredModelsSaved ? JSON.parse(preferredModelsSaved) : {};
+  let activeModel = '';
+  
+  if (activeProvider === 'gemini') {
+    activeModel = preferredModels.gemini || 'gemini-2.5-flash';
+  } else if (activeProvider === 'openai') {
+    activeModel = preferredModels.openai || 'gpt-4o-mini';
+  } else if (activeProvider === 'anthropic') {
+    activeModel = preferredModels.anthropic || 'claude-3-5-haiku-20241022';
+  } else if (activeProvider === 'deepseek') {
+    activeModel = preferredModels.deepseek || 'deepseek-chat';
+  }
+
+  let ratePerMillion = 0.15; // default fallback (gemini-2.5-flash)
+  if (activeModel.includes('gemini-2.5-pro')) ratePerMillion = 2.50;
+  else if (activeModel.includes('gemini-2.5-flash')) ratePerMillion = 0.15;
+  else if (activeModel.includes('gpt-4o-mini')) ratePerMillion = 0.30;
+  else if (activeModel.includes('gpt-4o')) ratePerMillion = 5.00;
+  else if (activeModel.includes('haiku')) ratePerMillion = 1.00;
+  else if (activeModel.includes('sonnet')) ratePerMillion = 6.00;
+  else if (activeModel.includes('deepseek-chat')) ratePerMillion = 0.20;
+  else if (activeModel.includes('reasoner')) ratePerMillion = 1.00;
+
+  const cost = status === 'success' ? (estTokens * ratePerMillion) / 1000000 : 0;
+  
+  const currentTotalCost = parseFloat(localStorage.getItem('ew_ai_total_cost') || '0.0');
+  localStorage.setItem('ew_ai_total_cost', (currentTotalCost + cost).toString());
   
   usage.history.unshift({
     id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
     timestamp: new Date().toISOString(),
     endpoint,
     status,
-    tokens: estTokens
+    tokens: estTokens,
+    model: activeModel,
+    cost: cost
   });
   
   if (usage.history.length > 50) {
@@ -1917,4 +1950,5 @@ export function logAIUsage(endpoint: string, status: 'success' | 'error', prompt
   
   localStorage.setItem('ew_ai_usage', JSON.stringify(usage));
 }
+
 

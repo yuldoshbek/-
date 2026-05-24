@@ -78,11 +78,33 @@ export const getModuleAIHint = (profile: ProfileConfig, moduleId: string): strin
 export const getAIHeaders = (): Record<string, string> => {
   const apiKeys = JSON.parse(localStorage.getItem('ew_api_keys') || '[]');
   const activeProvider = localStorage.getItem('ew_active_ai_provider') || 'gemini';
+  const preferredModelsSaved = localStorage.getItem('ew_preferred_models');
+  const preferredModels = preferredModelsSaved ? JSON.parse(preferredModelsSaved) : {};
+  const activeModel = preferredModels[activeProvider] || '';
+  const temperature = localStorage.getItem('ew_ai_temperature') || '0.4';
+  const totalCost = localStorage.getItem('ew_ai_total_cost') || '0.0';
+  const budgetLimit = localStorage.getItem('ew_ai_budget_limit') || '10.0';
+  const customInstructions = localStorage.getItem('ew_ai_custom_instructions') || '';
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'x-active-provider': activeProvider
+    'x-active-provider': activeProvider,
+    'x-ai-temperature': temperature,
+    'x-ai-total-cost': totalCost,
+    'x-ai-budget-limit': budgetLimit
   };
+
+  if (activeModel) {
+    headers['x-ai-model'] = activeModel;
+  }
+
+  if (customInstructions) {
+    try {
+      headers['x-ai-custom-instructions'] = btoa(encodeURIComponent(customInstructions));
+    } catch (e) {
+      console.error('Failed to encode custom instructions to base64:', e);
+    }
+  }
 
   apiKeys.forEach((k: any) => {
     if (k.key) {
