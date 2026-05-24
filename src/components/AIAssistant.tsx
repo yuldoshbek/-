@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTasks, useComplaints, useMeetings, logAIUsage } from '../lib/hooks';
 import { Send, RefreshCw, Sparkles, MessageSquare, CornerDownRight, Clock, Zap } from 'lucide-react';
+import { getAIHeaders } from '../lib/ai-context';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -63,10 +64,7 @@ export default function AIAssistant() {
       const promptTextToSend = `Запрос: "${textToSend}"\n\nСостояние системы:\n${JSON.stringify(systemContext, null, 2)}`;
       const res = await fetch('/api/executive-summary', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-gemini-key': JSON.parse(localStorage.getItem('ew_api_keys') || '[]').find((k: any) => k.id === 'gemini')?.key || ''
-        },
+        headers: getAIHeaders(),
         body: JSON.stringify({
           reportText: promptTextToSend
         })

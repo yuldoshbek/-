@@ -959,6 +959,102 @@ export function useDepartments() {
   return { departments, loading, updateDepartmentKPI };
 }
 
+export const defaultEmployees: Employee[] = [
+  { id: 'e-1', fullName: 'Александр Иванов', position: 'Старший разработчик', departmentId: 'd-2', status: 'active', userId: 'guest', createdAt: Date.now() },
+  { id: 'e-2', fullName: 'Елена Петрова', position: 'Менеджер по продажам', departmentId: 'd-3', status: 'active', userId: 'guest', createdAt: Date.now() },
+  { id: 'e-3', fullName: 'Дмитрий Сидоров', position: 'Архитектор', departmentId: 'd-2', status: 'vacation', userId: 'guest', createdAt: Date.now() },
+];
+
+export function useEmployees() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Employee[]>('tmk_employees', defaultEmployees);
+      setEmployees(items);
+      setLoading(false);
+      return;
+    }
+
+    const uid = auth.currentUser.uid;
+    const q = query(collection(db, 'users', uid, 'employees'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loaded = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee));
+      const bootstrapFlag = `bootstrapped_employees_${uid}`;
+      if (loaded.length === 0 && !localStorage.getItem(bootstrapFlag)) {
+        localStorage.setItem(bootstrapFlag, 'true');
+        defaultEmployees.forEach(async (emp) => {
+          const { id, ...clean } = emp;
+          try {
+            await addDoc(collection(db, 'users', uid, 'employees'), { ...clean, userId: uid });
+          } catch (e) {
+            console.error("Bootstrap employees error:", e);
+          }
+        });
+      }
+      setEmployees(loaded.length > 0 ? loaded : defaultEmployees);
+      setLoading(false);
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'employees'));
+    return () => unsubscribe();
+  }, [auth.currentUser]);
+
+  const addEmployee = async (empData: Omit<Employee, 'id' | 'createdAt' | 'userId'>) => {
+    const fresh = {
+      ...empData,
+      userId: auth.currentUser?.uid || 'guest',
+      createdAt: Date.now()
+    };
+
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Employee[]>('tmk_employees', defaultEmployees);
+      const newEmp: Employee = { ...fresh, id: 'e-' + Math.random().toString(36).substr(2, 9) };
+      const updated = [...items, newEmp];
+      setLocalItem('tmk_employees', updated);
+      setEmployees(updated);
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, 'users', auth.currentUser.uid, 'employees'), fresh);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'employees');
+    }
+  };
+
+  const updateEmployee = async (id: string, updates: Partial<Employee>) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Employee[]>('tmk_employees', defaultEmployees);
+      const updated = items.map(e => e.id === id ? { ...e, ...updates } : e);
+      setLocalItem('tmk_employees', updated);
+      setEmployees(updated);
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'employees', id), updates);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `employees/${id}`);
+    }
+  };
+
+  const deleteEmployee = async (id: string) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Employee[]>('tmk_employees', defaultEmployees);
+      const updated = items.filter(e => e.id !== id);
+      setLocalItem('tmk_employees', updated);
+      setEmployees(updated);
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'employees', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `employees/${id}`);
+    }
+  };
+
+  return { employees, loading, addEmployee, updateEmployee, deleteEmployee };
+}
+
 // 7. Employee Tasks state hook
 export function useEmployeeTasks() {
   const [employeeTasks, setEmployeeTasks] = useState<EmployeeTask[]>([]);
@@ -1684,7 +1780,8 @@ export async function syncAllData(uid: string | null) {
       { key: 'tmk_reminders', val: defaultReminders },
       { key: 'tmk_approvals', val: defaultApprovals },
       { key: 'executive_corporate_guides', val: defaultGuides },
-      { key: 't_departments', val: defaultDepartments }
+      { key: 't_departments', val: defaultDepartments },
+      { key: 'tmk_employees', val: defaultEmployees }
     ];
     keys.forEach(({ key, val }) => {
       if (!localStorage.getItem(key)) {
@@ -1707,7 +1804,8 @@ export async function syncAllData(uid: string | null) {
     { name: 'risks', data: defaultRisks },
     { name: 'reminders', data: defaultReminders },
     { name: 'approvals', data: defaultApprovals },
-    { name: 'guides', data: defaultGuides }
+    { name: 'guides', data: defaultGuides },
+    { name: 'employees', data: defaultEmployees }
   ];
 
   for (const target of targets) {
@@ -1746,6 +1844,7 @@ export async function resetAllData(uid: string | null) {
     localStorage.setItem('executive_mom_protocols', JSON.stringify([]));
     localStorage.setItem('executive_sub_reports', JSON.stringify([]));
     localStorage.setItem('t_departments', JSON.stringify(defaultDepartments));
+    localStorage.setItem('tmk_employees', JSON.stringify(defaultEmployees));
     return;
   }
 
@@ -1763,6 +1862,7 @@ export async function resetAllData(uid: string | null) {
     { name: 'reminders', data: defaultReminders },
     { name: 'approvals', data: defaultApprovals },
     { name: 'guides', data: defaultGuides },
+    { name: 'employees', data: defaultEmployees },
     { name: 'protocols', data: [] },
     { name: 'subReports', data: [] }
   ];

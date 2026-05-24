@@ -73,6 +73,27 @@ export const getModuleAIHint = (profile: ProfileConfig, moduleId: string): strin
 };
 
 /**
+ * Helper to build dynamic AI headers based on saved keys and active provider.
+ */
+export const getAIHeaders = (): Record<string, string> => {
+  const apiKeys = JSON.parse(localStorage.getItem('ew_api_keys') || '[]');
+  const activeProvider = localStorage.getItem('ew_active_ai_provider') || 'gemini';
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-active-provider': activeProvider
+  };
+
+  apiKeys.forEach((k: any) => {
+    if (k.key) {
+      headers[`x-${k.id}-key`] = k.key;
+    }
+  });
+
+  return headers;
+};
+
+/**
  * Analyzes the given module data (e.g. tasks array, journal entries) using Gemini API
  * and returns structured insights, warnings, and suggested actions.
  */
@@ -87,9 +108,7 @@ export const analyzeModuleContext = async (
 }> => {
   const systemPrompt = buildSystemPrompt(profile, moduleName);
   
-  const prompt = `${systemPrompt}
-
-Тебе передан текущий контекст модуля (данные на экране пользователя).
+  const prompt = `Тебе передан текущий контекст модуля (данные на экране пользователя).
 Проанализируй их и верни результат СТРОГО в формате JSON, без маркдауна и лишних символов.
 
 Ожидаемый формат JSON:
@@ -105,40 +124,30 @@ export const analyzeModuleContext = async (
 ${JSON.stringify(contextData, null, 2).slice(0, 3000)}`;
 
   try {
-    const apiKeys = JSON.parse(localStorage.getItem('ew_api_keys') || '[]');
-    const geminiKey = apiKeys.find((k: any) => k.id === 'gemini')?.key;
-    
-    if (!geminiKey) {
-      throw new Error('API Key not found');
-    }
-
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+    const res = await fetch('/api/ai/analyze-context', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAIHeaders(),
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
+        prompt,
+        systemPrompt
       })
     });
 
-    if (!res.ok) throw new Error('API Error');
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('No text in response');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Ошибка ИИ-сервера');
+    }
     
-    const parsed = JSON.parse(text);
+    const parsed = await res.json();
     return {
       insights: parsed.insights || [],
       warnings: parsed.warnings || [],
       actions: parsed.actions || []
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI Context Analysis Error:', error);
-    // Fallback if API fails or no key
     return {
-      insights: ['Подключите API ключ Gemini в настройках для получения AI-аналитики.'],
+      insights: [`Не удалось загрузить ИИ-аналитику: ${error.message || 'Ошибка сети'}. Проверьте API-ключи в настройках.`],
       warnings: [],
       actions: []
     };

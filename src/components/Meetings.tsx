@@ -4,6 +4,7 @@ import { useTasks, useMeetings, logAIUsage } from '../lib/hooks';
 import { Meeting } from '../types';
 import EntityRelations from './EntityRelations';
 import { addLink } from '../lib/relations';
+import { getAIHeaders } from '../lib/ai-context';
 
 export default function Meetings() {
   const { meetings, addMeeting, updateMeetingDetails, deleteMeeting } = useMeetings();
@@ -38,10 +39,7 @@ export default function Meetings() {
     try {
       const res = await fetch('/api/process-meeting', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-gemini-key': JSON.parse(localStorage.getItem('ew_api_keys') || '[]').find((k: any) => k.id === 'gemini')?.key || ''
-        },
+        headers: getAIHeaders(),
         body: JSON.stringify({ notes })
       });
       const data = await res.json();

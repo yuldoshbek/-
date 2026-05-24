@@ -22,17 +22,35 @@ export default function Settings() {
   
   const { domain, setDomain } = useWorkspace();
 
-  // API Keys state
+  // API Keys state with fallback/merge support for Anthropic and DeepSeek
   const [apiKeys, setApiKeys] = useState<ApiKeyEntry[]>(() => {
     const saved = localStorage.getItem('ew_api_keys');
-    return saved ? JSON.parse(saved) : [
+    const parsed = saved ? JSON.parse(saved) : [];
+    const defaults = [
       { id: 'gemini', name: 'Gemini API Key', key: '', status: 'active' as const, lastUsed: 'Не использовался' },
-      { id: 'openai', name: 'OpenAI API Key', key: '', status: 'active' as const, lastUsed: 'Не использовался' }
+      { id: 'openai', name: 'OpenAI (ChatGPT) API Key', key: '', status: 'active' as const, lastUsed: 'Не использовался' },
+      { id: 'anthropic', name: 'Claude (Anthropic) API Key', key: '', status: 'active' as const, lastUsed: 'Не использовался' },
+      { id: 'deepseek', name: 'DeepSeek API Key', key: '', status: 'active' as const, lastUsed: 'Не использовался' }
     ];
+    const merged = [...parsed];
+    defaults.forEach(d => {
+      if (!merged.find(k => k.id === d.id)) {
+        merged.push(d);
+      }
+    });
+    return merged;
+  });
+  const [activeProvider, setActiveProvider] = useState(() => {
+    return localStorage.getItem('ew_active_ai_provider') || 'gemini';
   });
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyValue, setNewKeyValue] = useState('');
+
+  const changeActiveProvider = (provider: string) => {
+    setActiveProvider(provider);
+    localStorage.setItem('ew_active_ai_provider', provider);
+  };
 
   // Usage stats from localStorage
   const [aiUsage, setAiUsage] = useState(() => {
@@ -107,12 +125,16 @@ export default function Settings() {
     }
     setTestingKeyId(entry.id);
     try {
+      // Build test headers dynamically based on tested provider
+      const testHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-active-provider': entry.id,
+      };
+      testHeaders[`x-${entry.id}-key`] = entry.key;
+
       const res = await fetch('/api/translate-letter', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-gemini-key': entry.key
-        },
+        headers: testHeaders,
         body: JSON.stringify({ instruction: 'Тест подключения к API.', style: 'official' })
       });
       const data = await res.json();
@@ -298,6 +320,34 @@ export default function Settings() {
               <div className="ew-card p-6 space-y-5">
                 <h2 className="text-lg font-bold text-slate-900 font-display">API Ключи</h2>
                 <p className="text-sm text-slate-500">Управление токенами доступа для ИИ-сервисов и внешних интеграций.</p>
+
+                {/* Active AI Provider Switcher */}
+                <div className="mb-6 p-4 bg-blue-50/50 border border-blue-100/60 rounded-xl space-y-2">
+                  <label className="block text-xs font-bold text-blue-800 uppercase tracking-wider">Активный ИИ-провайдер</label>
+                  <p className="text-[11px] text-slate-500">Выберите, какая языковая модель будет выполнять анализ, писать письма, протоколировать встречи и вести диалог в чате.</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                    {[
+                      { id: 'gemini', name: 'Google Gemini', icon: '♊' },
+                      { id: 'openai', name: 'OpenAI (ChatGPT)', icon: '🧠' },
+                      { id: 'anthropic', name: 'Claude (Anthropic)', icon: '🦉' },
+                      { id: 'deepseek', name: 'DeepSeek', icon: '🐳' }
+                    ].map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => changeActiveProvider(p.id)}
+                        className={`px-3 py-2 rounded-lg border text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          activeProvider === p.id 
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/20' 
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        <span>{p.icon}</span>
+                        <span>{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 <div className="space-y-3">
                   {apiKeys.map(entry => (

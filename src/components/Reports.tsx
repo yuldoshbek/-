@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Sparkles, TrendingUp, AlertTriangle, PlayCircle, Download, RefreshCw, FileSpreadsheet, CheckSquare } from 'lucide-react';
 import { logAIUsage } from '../lib/hooks';
+import { getAIHeaders } from '../lib/ai-context';
 
 interface ReportTemplate {
   id: string;
@@ -91,13 +92,9 @@ export default function Reports() {
     setGenerating(true);
     setResult(null);
     try {
-      const customKey = JSON.parse(localStorage.getItem('ew_api_keys') || '[]').find((k: any) => k.id === 'gemini')?.key || '';
       const res = await fetch('/api/executive-summary', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-gemini-key': customKey
-        },
+        headers: getAIHeaders(),
         body: JSON.stringify({ reportText })
       });
       const data = await res.json();

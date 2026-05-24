@@ -1,24 +1,65 @@
 import React, { useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { JournalEntry } from '../types';
-import { Plus, Search, AlertOctagon, CheckSquare, AlertTriangle, ArrowRight } from 'lucide-react';
-import { useTasks } from '../lib/hooks';
+import { Plus, Search, AlertOctagon, CheckSquare, AlertTriangle, ArrowRight, X } from 'lucide-react';
+import { useTasks, useComplaints, useDecisions, useRisks } from '../lib/hooks';
 import { addLink } from '../lib/relations';
 import EntityRelations from './EntityRelations';
 import AIAdvisor from './AIAdvisor';
 
-const MOCK_JOURNAL: JournalEntry[] = [
-  { id: 'j-1', type: 'decision', title: 'Внедрение новой системы контроля', description: 'Решено перейти на новую систему с 1 июня.', status: 'closed', priority: 'high', userId: 'guest', createdAt: Date.now(), updatedAt: Date.now() },
-  { id: 'j-2', type: 'risk', title: 'Срыв сроков поставки оборудования', description: 'Поставщик задерживает отправку серверов на 2 недели.', status: 'in_progress', priority: 'critical', userId: 'guest', createdAt: Date.now(), updatedAt: Date.now() },
-  { id: 'j-3', type: 'complaint', title: 'Проблема с кондиционером', description: 'Сотрудники жалуются на духоту в отделе продаж.', status: 'open', priority: 'medium', userId: 'guest', createdAt: Date.now(), updatedAt: Date.now() },
-];
-
 export default function Journal() {
   const { getLabel } = useWorkspace();
   const { addTask } = useTasks();
-  const [entries, setEntries] = useState<JournalEntry[]>(MOCK_JOURNAL);
+  const { complaints, addComplaint } = useComplaints();
+  const { decisions, addDecision } = useDecisions();
+  const { risks, addRisk } = useRisks();
+
+  // Modal creation states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newType, setNewType] = useState<'complaint' | 'decision' | 'risk'>('risk');
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newPriority, setNewPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+
   const [filterType, setFilterType] = useState<'all' | 'complaint' | 'decision' | 'risk'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Map and merge hooks into a unified registry
+  const entries: JournalEntry[] = [
+    ...complaints.map(c => ({
+      id: c.id,
+      type: 'complaint' as const,
+      title: c.title,
+      description: c.description,
+      status: c.status === 'resolved' ? 'closed' as const : c.status === 'in_progress' ? 'in_progress' as const : 'open' as const,
+      priority: 'medium' as const,
+      userId: c.userId || 'guest',
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt || c.createdAt
+    })),
+    ...decisions.map(d => ({
+      id: d.id,
+      type: 'decision' as const,
+      title: d.title,
+      description: d.summary || '',
+      status: d.status === 'Действует' ? 'open' as const : 'closed' as const,
+      priority: d.category === 'Стратегическое' ? 'high' as const : 'medium' as const,
+      userId: d.userId || 'guest',
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt
+    })),
+    ...risks.map(r => ({
+      id: r.id,
+      type: 'risk' as const,
+      title: r.title,
+      description: r.mitidgationPlan || '',
+      status: r.status === 'active' ? 'open' as const : 'closed' as const,
+      priority: r.level === 'critical' ? 'critical' as const : r.level === 'high' ? 'high' as const : r.level === 'medium' ? 'medium' as const : 'low' as const,
+      userId: r.userId || 'guest',
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt
+    }))
+  ].sort((a, b) => b.createdAt - a.createdAt);
 
   const filtered = entries.filter(e => {
     if (filterType !== 'all' && e.type !== filterType) return false;
@@ -101,7 +142,11 @@ export default function Journal() {
               className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 w-full md:w-64"
             />
           </div>
-          <button className="ew-btn ew-btn-primary whitespace-nowrap">
+          <button 
+            type="button"
+            onClick={() => setShowAddModal(true)} 
+            className="ew-btn ew-btn-primary whitespace-nowrap cursor-pointer"
+          >
             <Plus size={16} /> Создать запись
           </button>
         </div>
@@ -188,6 +233,149 @@ export default function Journal() {
           ))
         )}
       </div>
+
+      {/* Modal Dialog for Adding Entry */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 text-sm font-display">Новая запись в реестр</h3>
+              <button 
+                type="button" 
+                onClick={() => setShowAddModal(false)} 
+                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </header>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newTitle.trim() || !newDesc.trim()) return;
+                try {
+                  if (newType === 'complaint') {
+                    await addComplaint({
+                      title: newTitle,
+                      description: newDesc,
+                      category: 'Жалоба',
+                      status: 'pending',
+                      reporter: 'Заявитель',
+                      deadline: ''
+                    });
+                  } else if (newType === 'decision') {
+                    await addDecision({
+                      referenceNo: 'DEC-' + Date.now().toString().slice(-4),
+                      title: newTitle,
+                      category: 'Организационное',
+                      date: new Date().toISOString().split('T')[0],
+                      signer: 'Руководитель',
+                      status: 'Действует',
+                      summary: newDesc
+                    });
+                  } else {
+                    await addRisk({
+                      title: newTitle,
+                      category: 'Финансовый',
+                      level: newPriority,
+                      mitidgationPlan: newDesc,
+                      reporter: 'Аналитик',
+                      status: 'active'
+                    });
+                  }
+                  alert('Запись успешно создана!');
+                  setNewTitle('');
+                  setNewDesc('');
+                  setShowAddModal(false);
+                } catch (err: any) {
+                  alert('Ошибка создания записи: ' + err.message);
+                }
+              }} 
+              className="p-6 space-y-4 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">Тип записи</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'risk', label: 'Риск' },
+                    { id: 'decision', label: 'Решение' },
+                    { id: 'complaint', label: 'Обращение' }
+                  ].map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setNewType(t.id as any)}
+                      className={`py-2 rounded-xl border text-center font-bold transition-all cursor-pointer ${
+                        newType === t.id 
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/10' 
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">Заголовок</label>
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={e => setNewTitle(e.target.value)}
+                  placeholder="Введите заголовок записи..."
+                  className="w-full text-xs border border-slate-200 p-2.5 rounded-xl bg-slate-50/50 focus:outline-none focus:border-blue-400 font-medium"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">Описание / Решение</label>
+                <textarea
+                  rows={4}
+                  value={newDesc}
+                  onChange={e => setNewDesc(e.target.value)}
+                  placeholder="Опишите суть решения, риска (и план нивелирования) или обращения..."
+                  className="w-full text-xs border border-slate-200 p-2.5 rounded-xl bg-slate-50/50 focus:outline-none focus:border-blue-400"
+                  required
+                />
+              </div>
+
+              {newType === 'risk' && (
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">Уровень критичности</label>
+                  <select
+                    value={newPriority}
+                    onChange={e => setNewPriority(e.target.value as any)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-xl bg-slate-50/50 focus:outline-none focus:border-blue-400 font-semibold"
+                  >
+                    <option value="low">Низкий (Low)</option>
+                    <option value="medium">Средний (Medium)</option>
+                    <option value="high">Высокий (High)</option>
+                    <option value="critical">Критический (Critical)</option>
+                  </select>
+                </div>
+              )}
+
+              <footer className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 border rounded-xl font-bold hover:bg-slate-50 text-slate-600 transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  className="ew-btn ew-btn-primary"
+                >
+                  Создать запись
+                </button>
+              </footer>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

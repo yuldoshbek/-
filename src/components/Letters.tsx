@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Sparkles, Copy, Check, Info, FileSpreadsheet, ArrowRight } from 'lucide-react';
 import { getAccessToken } from '../firebase';
 import { logAIUsage } from '../lib/hooks';
+import { getAIHeaders } from '../lib/ai-context';
 
 export default function Letters() {
   const [instruction, setInstruction] = useState('');
@@ -29,10 +30,7 @@ export default function Letters() {
     try {
       const res = await fetch('/api/translate-letter', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-gemini-key': JSON.parse(localStorage.getItem('ew_api_keys') || '[]').find((k: any) => k.id === 'gemini')?.key || ''
-        },
+        headers: getAIHeaders(),
         body: JSON.stringify({ instruction, style })
       });
       const data = await res.json();
