@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTasks, useComplaints, useMeetings } from '../lib/hooks';
+import { useTasks, useComplaints, useMeetings, logAIUsage } from '../lib/hooks';
 import { Send, RefreshCw, Sparkles, MessageSquare, CornerDownRight, Clock, Zap } from 'lucide-react';
 
 interface ChatMessage {
@@ -60,11 +60,15 @@ export default function AIAssistant() {
     };
 
     try {
+      const promptTextToSend = `Запрос: "${textToSend}"\n\nСостояние системы:\n${JSON.stringify(systemContext, null, 2)}`;
       const res = await fetch('/api/executive-summary', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-gemini-key': JSON.parse(localStorage.getItem('ew_api_keys') || '[]').find((k: any) => k.id === 'gemini')?.key || ''
+        },
         body: JSON.stringify({
-          reportText: `Запрос: "${textToSend}"\n\nСостояние системы:\n${JSON.stringify(systemContext, null, 2)}`
+          reportText: promptTextToSend
         })
       });
 
@@ -76,8 +80,10 @@ export default function AIAssistant() {
         if (data.summaryUz) responseText += `O'zbekcha: ${data.summaryUz}\n\n`;
         if (data.risks?.length) responseText += `⚠️ Риски:\n${data.risks.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n')}\n\n`;
         if (data.nextSteps?.length) responseText += `📋 Рекомендации:\n${data.nextSteps.map((s: string) => `• ${s}`).join('\n')}`;
+        logAIUsage('/api/executive-summary', 'success', promptTextToSend.length, responseText.length);
       } else {
         responseText = 'Не удалось получить ответ от ИИ-сервиса.';
+        logAIUsage('/api/executive-summary', 'error', promptTextToSend.length, 0);
       }
 
       setMessages(prev => [...prev, {
@@ -86,6 +92,7 @@ export default function AIAssistant() {
         timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
       }]);
     } catch {
+      logAIUsage('/api/executive-summary', 'error', textToSend.length, 0);
       // Fallback response
       const pendingCount = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
       const overdueCount = tasks.filter(t => t.status === 'overdue').length;

@@ -7,17 +7,22 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-const getAI = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
+const getAI = (req?: express.Request) => {
+  const customKey = req?.headers['x-gemini-key'] as string;
+  const apiKey = customKey || process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
 };
 
 // API constraints check middleware
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/') && req.path !== '/api/health' && !process.env.GEMINI_API_KEY) {
-     res.status(500).json({ error: "Gemini API key is missing. Configure it in settings or environment variables." });
-     return;
+  if (req.path.startsWith('/api/') && req.path !== '/api/health') {
+     const customKey = req.headers['x-gemini-key'] as string;
+     const apiKey = customKey || process.env.GEMINI_API_KEY;
+     if (!apiKey) {
+        res.status(500).json({ error: "Gemini API key is missing. Configure it in settings or environment variables." });
+        return;
+     }
   }
   next();
 });
@@ -41,7 +46,7 @@ Please return the response as JSON:
   "toneAnalysis": "Analysis of the original instruction's tone (e.g., sharp, demanding, neutral, weak)",
   "warnings": "Any warnings about ambiguity or inappropriate tone in the original instructions"
 }`;
-    const ai = getAI();
+    const ai = getAI(req);
     if (!ai) throw new Error("Gemini API Client failed to initialize");
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -74,7 +79,7 @@ Return as JSON:
 
 Meeting notes:
 ${notes}`;
-    const ai = getAI();
+    const ai = getAI(req);
     if (!ai) throw new Error("Gemini API Client failed to initialize");
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -107,7 +112,7 @@ Return as JSON:
 
 Report Text:
 ${reportText}`;
-    const ai = getAI();
+    const ai = getAI(req);
     if (!ai) throw new Error("Gemini API Client failed to initialize");
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",

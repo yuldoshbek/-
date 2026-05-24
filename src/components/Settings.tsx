@@ -15,6 +15,7 @@ export default function Settings() {
   const [activeSection, setActiveSection] = useState<'profile' | 'api' | 'usage' | 'database' | 'theme'>('profile');
   const [syncing, setSyncing] = useState(false);
   const [themeVariant, setThemeVariant] = useState(() => localStorage.getItem('executive_theme') || 'hybrid');
+  const [testingKeyId, setTestingKeyId] = useState<string | null>(null);
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<ApiKeyEntry[]>(() => {
@@ -28,12 +29,10 @@ export default function Settings() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyValue, setNewKeyValue] = useState('');
 
-  // Usage stats
-  const [usageStats] = useState({
-    aiRequests: { used: 147, limit: 1000 },
-    storageSync: { used: 23, limit: 100 },
-    letterGen: { used: 34, limit: 200 },
-    reportGen: { used: 12, limit: 50 }
+  // Usage stats from localStorage
+  const [aiUsage, setAiUsage] = useState(() => {
+    const saved = localStorage.getItem('ew_ai_usage');
+    return saved ? JSON.parse(saved) : { usedRequests: 147, usedTokens: 588000, errors: 2, history: [] };
   });
 
   useEffect(() => {
@@ -68,6 +67,45 @@ export default function Settings() {
 
   const deleteKey = (id: string) => {
     setApiKeys(prev => prev.filter(k => k.id !== id));
+  };
+
+  const handleTestKey = async (entry: ApiKeyEntry) => {
+    if (!entry.key) {
+      alert("Пожалуйста, сначала введите API ключ!");
+      return;
+    }
+    setTestingKeyId(entry.id);
+    try {
+      const res = await fetch('/api/translate-letter', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-gemini-key': entry.key
+        },
+        body: JSON.stringify({ instruction: 'Тест подключения к API.', style: 'official' })
+      });
+      const data = await res.json();
+      if (res.ok && !data.error) {
+        const timeStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        setApiKeys(prev => {
+          const updated = prev.map(k => k.id === entry.id ? { ...k, status: 'active' as const, lastUsed: timeStr } : k);
+          localStorage.setItem('ew_api_keys', JSON.stringify(updated));
+          return updated;
+        });
+        alert("Успешно! Соединение с API установлено.");
+      } else {
+        throw new Error(data.error || "Неизвестная ошибка проверки ключа.");
+      }
+    } catch (err: any) {
+      setApiKeys(prev => {
+        const updated = prev.map(k => k.id === entry.id ? { ...k, status: 'error' as const } : k);
+        localStorage.setItem('ew_api_keys', JSON.stringify(updated));
+        return updated;
+      });
+      alert(`Ошибка подключения к API: ${err.message}`);
+    } finally {
+      setTestingKeyId(null);
+    }
   };
 
   const handleSync = async (hardReset: boolean = false) => {
@@ -204,7 +242,19 @@ export default function Settings() {
                     <div key={entry.id} className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl group">
                       <Key size={16} className="text-slate-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-700">{entry.name}</p>
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-xs font-bold text-slate-700">{entry.name}</p>
+                          <div className="flex items-center gap-2">
+                            {entry.lastUsed && entry.lastUsed !== 'Не использовался' && (
+                              <span className="text-[9px] text-slate-400 font-medium">Проверен: {entry.lastUsed}</span>
+                            )}
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              entry.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                            }`}>
+                              {entry.status === 'active' ? 'Активен' : 'Ошибка'}
+                            </span>
+                          </div>
+                        </div>
                         <div className="flex items-center gap-2 mt-1">
                           <input
                             type={visibleKeys.has(entry.id) ? 'text' : 'password'}
@@ -220,11 +270,21 @@ export default function Settings() {
                             {visibleKeys.has(entry.id) ? <EyeOff size={14} /> : <Eye size={14} />}
                           </button>
                           <button
-                            onClick={() => deleteKey(entry.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-500 rounded opacity-0 group-hover:opacity-100"
+                            onClick={() => handleTestKey(entry)}
+                            disabled={testingKeyId !== null}
+                            className="px-2.5 py-1.5 bg-white hover:bg-slate-100 border text-slate-600 disabled:opacity-50 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-sm"
                           >
-                            <Trash2 size={14} />
+                            {testingKeyId === entry.id ? <RefreshCw size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                            Тест
                           </button>
+                          {entry.id !== 'gemini' && entry.id !== 'openai' && (
+                            <button
+                              onClick={() => deleteKey(entry.id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-500 rounded opacity-0 group-hover:opacity-100 shrink-0"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -263,13 +323,13 @@ export default function Settings() {
             <div className="ew-card p-6 space-y-6">
               <h2 className="text-lg font-bold text-slate-900 font-display">Расход ресурсов ИИ</h2>
               <p className="text-sm text-slate-500">Мониторинг использования ИИ-запросов и лимитов за текущий месяц.</p>
-
+ 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { label: 'ИИ-запросы (Gemini)', ...usageStats.aiRequests, color: 'bg-blue-500', icon: <BarChart3 size={16} className="text-blue-500" /> },
-                  { label: 'Синхронизации БД', ...usageStats.storageSync, color: 'bg-emerald-500', icon: <Database size={16} className="text-emerald-500" /> },
-                  { label: 'Генерация писем', ...usageStats.letterGen, color: 'bg-indigo-500', icon: <Key size={16} className="text-indigo-500" /> },
-                  { label: 'Генерация отчётов', ...usageStats.reportGen, color: 'bg-amber-500', icon: <BarChart3 size={16} className="text-amber-500" /> },
+                  { label: 'ИИ-запросы (Всего)', used: aiUsage.usedRequests, limit: 1000, color: 'bg-blue-500', icon: <BarChart3 size={16} className="text-blue-500" /> },
+                  { label: 'Оценочный токен-счетчик', used: aiUsage.usedTokens, limit: 5000000, color: 'bg-indigo-500', icon: <Key size={16} className="text-indigo-500" /> },
+                  { label: 'Ошибки запросов', used: aiUsage.errors, limit: 100, color: 'bg-rose-500', icon: <AlertTriangle size={16} className="text-rose-500" /> },
+                  { label: 'Синхронизации БД', used: 12, limit: 100, color: 'bg-emerald-500', icon: <Database size={16} className="text-emerald-500" /> },
                 ].map((item, i) => (
                   <div key={i} className="p-5 bg-slate-50 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">
@@ -277,16 +337,55 @@ export default function Settings() {
                         {item.icon}
                         <span className="text-xs font-bold text-slate-700">{item.label}</span>
                       </div>
-                      <span className="text-xs font-mono text-slate-500">{item.used}/{item.limit}</span>
+                      <span className="text-xs font-mono text-slate-500">{item.used.toLocaleString()}/{item.limit.toLocaleString()}</span>
                     </div>
                     {usageBar(item.used, item.limit, item.color)}
                     <p className="text-[10px] text-slate-400">
-                      Осталось: {item.limit - item.used} ({Math.round(((item.limit - item.used) / item.limit) * 100)}%)
+                      Осталось: {(item.limit - item.used).toLocaleString()} ({Math.max(0, Math.round(((item.limit - item.used) / item.limit) * 100))}%)
                     </p>
                   </div>
                 ))}
               </div>
 
+              {/* AI Request History Log */}
+              <div className="border-t pt-6 space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 font-display">Журнал запросов ИИ (Последние 50)</h3>
+                <div className="overflow-x-auto border border-slate-100 rounded-xl max-h-60 overflow-y-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase sticky top-0">
+                        <th className="p-3 bg-slate-50">Время</th>
+                        <th className="p-3 bg-slate-50">Эндпоинт</th>
+                        <th className="p-3 bg-slate-50">Статус</th>
+                        <th className="p-3 bg-slate-50 text-right">Токены</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                      {aiUsage.history && aiUsage.history.length > 0 ? (
+                        aiUsage.history.map((log: any) => (
+                          <tr key={log.id} className="hover:bg-slate-50/50">
+                            <td className="p-3 text-slate-500">{new Date(log.timestamp).toLocaleTimeString('ru-RU')}</td>
+                            <td className="p-3 font-semibold text-slate-700">{log.endpoint}</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                log.status === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                              }`}>
+                                {log.status === 'success' ? 'Успешно' : 'Ошибка'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right text-slate-600">{log.tokens.toLocaleString()}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="p-4 text-center text-slate-400 font-sans">Журнал запросов пуст.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+ 
               <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3">
                 <AlertTriangle size={16} className="text-blue-500 shrink-0 mt-0.5" />
                 <p className="text-xs text-blue-800">

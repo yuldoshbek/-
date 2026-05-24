@@ -17,8 +17,21 @@ provider.addScope('https://www.googleapis.com/auth/presentations');
 provider.addScope('https://www.googleapis.com/auth/tasks');
 provider.addScope('https://www.googleapis.com/auth/forms');
 
+const loadPersistedToken = (): string | null => {
+  const token = localStorage.getItem('google_access_token');
+  const expiry = localStorage.getItem('google_token_expiry');
+  if (token && expiry) {
+    if (Date.now() < parseInt(expiry)) {
+      return token;
+    }
+  }
+  localStorage.removeItem('google_access_token');
+  localStorage.removeItem('google_token_expiry');
+  return null;
+};
+
 let isSigningIn = false;
-let cachedAccessToken: string | null = null;
+let cachedAccessToken: string | null = loadPersistedToken();
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string | null) => void,
@@ -26,12 +39,8 @@ export const initAuth = (
 ) => {
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
-      if (cachedAccessToken || user.isAnonymous) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        cachedAccessToken = null;
-        if (onAuthFailure) onAuthFailure();
-      }
+      cachedAccessToken = loadPersistedToken();
+      if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
     } else {
       cachedAccessToken = null;
       if (onAuthFailure) onAuthFailure();
@@ -48,11 +57,13 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
       throw new Error('Failed to get access token from Firebase Auth');
     }
     cachedAccessToken = credential.accessToken;
+    localStorage.setItem('google_access_token', cachedAccessToken);
+    localStorage.setItem('google_token_expiry', String(Date.now() + 3600 * 1000)); // 1 hour expiry
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error('Sign in error:', error);
     if (error.code === 'auth/popup-blocked') {
-      alert('Всплывающее окно заблокировано. Пожалуйста, откройте приложение в новой вкладке (кнопка в правом верхнем углу) или разрешите всплывающие окна в браузере.');
+      alert('Всплывающее окно заблокировано. Пожалуйста, откройте приложение в новой вкладке или разрешите всплывающие окна в браузере.');
     } else if (error.code === 'auth/cancelled-popup-request') {
       alert('Авторизация прервана. Если вы используете приложение в браузере, попробуйте открыть его в новой вкладке.');
     } else {
@@ -65,12 +76,14 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 };
 
 export const getAccessToken = async (): Promise<string | null> => {
-  return cachedAccessToken;
+  return loadPersistedToken();
 };
 
 export const logout = async () => {
   await auth.signOut();
   cachedAccessToken = null;
+  localStorage.removeItem('google_access_token');
+  localStorage.removeItem('google_token_expiry');
 };
 
 export enum OperationType {

@@ -516,7 +516,22 @@ export function useTasks() {
     }
   };
 
-  return { tasks, loading, addTask, updateTaskStatus, updateTaskDetails };
+  const deleteTask = async (id: string) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Task[]>('t_tasks', defaultTasks);
+      const updated = items.filter(t => t.id !== id);
+      setLocalItem('t_tasks', updated);
+      setTasks(updated);
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'tasks', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `tasks/${id}`);
+    }
+  };
+
+  return { tasks, loading, addTask, updateTaskStatus, updateTaskDetails, deleteTask };
 }
 
 // 2. Meetings state hook
@@ -578,7 +593,40 @@ export function useMeetings() {
     }
   };
 
-  return { meetings, loading, addMeeting };
+  const updateMeetingDetails = async (id: string, updates: Partial<Meeting>) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Meeting[]>('t_meetings', defaultMeetings);
+      const updated = items.map(m => m.id === id ? { ...m, ...updates, updatedAt: Date.now() } : m);
+      setLocalItem('t_meetings', updated);
+      setMeetings(updated);
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'meetings', id), {
+        ...updates,
+        updatedAt: Date.now()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `meetings/${id}`);
+    }
+  };
+
+  const deleteMeeting = async (id: string) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Meeting[]>('t_meetings', defaultMeetings);
+      const updated = items.filter(m => m.id !== id);
+      setLocalItem('t_meetings', updated);
+      setMeetings(updated);
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'meetings', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `meetings/${id}`);
+    }
+  };
+
+  return { meetings, loading, addMeeting, updateMeetingDetails, deleteMeeting };
 }
 
 // 3. Letters/Correspondence state hook
@@ -640,7 +688,40 @@ export function useLetters() {
     }
   };
 
-  return { letters, loading, addLetter };
+  const updateLetterDetails = async (id: string, updates: Partial<Letter>) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Letter[]>('t_letters', defaultLetters);
+      const updated = items.map(l => l.id === id ? { ...l, ...updates, updatedAt: Date.now() } : l);
+      setLocalItem('t_letters', updated);
+      setLetters(updated);
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'letters', id), {
+        ...updates,
+        updatedAt: Date.now()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `letters/${id}`);
+    }
+  };
+
+  const deleteLetter = async (id: string) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Letter[]>('t_letters', defaultLetters);
+      const updated = items.filter(l => l.id !== id);
+      setLocalItem('t_letters', updated);
+      setLetters(updated);
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'letters', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `letters/${id}`);
+    }
+  };
+
+  return { letters, loading, addLetter, updateLetterDetails, deleteLetter };
 }
 
 // 4. Reports state hook
@@ -720,7 +801,40 @@ export function useReports() {
     }
   };
 
-  return { reports, loading, addReport, updateReportStatus };
+  const updateReportDetails = async (id: string, updates: Partial<Report>) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Report[]>('t_reports', defaultReports);
+      const updated = items.map(r => r.id === id ? { ...r, ...updates, updatedAt: Date.now() } : r);
+      setLocalItem('t_reports', updated);
+      setReports(updated);
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid, 'reports', id), {
+        ...updates,
+        updatedAt: Date.now()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `reports/${id}`);
+    }
+  };
+
+  const deleteReport = async (id: string) => {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      const items = getLocalItem<Report[]>('t_reports', defaultReports);
+      const updated = items.filter(r => r.id !== id);
+      setLocalItem('t_reports', updated);
+      setReports(updated);
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'reports', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `reports/${id}`);
+    }
+  };
+
+  return { reports, loading, addReport, updateReportStatus, updateReportDetails, deleteReport };
 }
 
 // 5. Complaints state hook
@@ -1676,3 +1790,31 @@ export async function resetAllData(uid: string | null) {
     }
   }
 }
+
+export function logAIUsage(endpoint: string, status: 'success' | 'error', promptLength: number, responseLength: number) {
+  const saved = localStorage.getItem('ew_ai_usage');
+  const usage = saved ? JSON.parse(saved) : { usedRequests: 147, usedTokens: 588000, errors: 2, history: [] };
+  
+  const estTokens = status === 'success' ? Math.ceil((promptLength + responseLength) / 4) : 0;
+  
+  usage.usedRequests += 1;
+  usage.usedTokens += estTokens;
+  if (status === 'error') {
+    usage.errors += 1;
+  }
+  
+  usage.history.unshift({
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    timestamp: new Date().toISOString(),
+    endpoint,
+    status,
+    tokens: estTokens
+  });
+  
+  if (usage.history.length > 50) {
+    usage.history = usage.history.slice(0, 50);
+  }
+  
+  localStorage.setItem('ew_ai_usage', JSON.stringify(usage));
+}
+

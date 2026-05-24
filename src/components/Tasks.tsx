@@ -9,16 +9,14 @@ import {
   LayoutGrid, 
   List, 
   Search, 
-  Briefcase, 
-  User, 
-  ChevronRight,
-  Sparkles,
-  Calendar
+  Calendar,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { Task } from '../types';
 
 export default function Tasks() {
-  const { tasks, loading, addTask, updateTaskStatus, updateTaskDetails } = useTasks();
+  const { tasks, loading, addTask, updateTaskStatus, updateTaskDetails, deleteTask } = useTasks();
   const { departments } = useDepartments();
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   
@@ -34,8 +32,18 @@ export default function Tasks() {
   const [newPriority, setNewPriority] = useState<Task['priority']>('medium');
   const [newDept, setNewDept] = useState('Департамент IT и цифровизации');
   const [newAssignee, setNewAssignee] = useState('');
-  const [newDeadline, setNewDeadline] = useState('2026-05-30');
+  const [newDeadline, setNewDeadline] = useState(() => new Date().toISOString().split('T')[0]);
   const [newSource, setNewSource] = useState('Поручение дирекции');
+
+  // Editing task state
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editPriority, setEditPriority] = useState<Task['priority']>('medium');
+  const [editDept, setEditDept] = useState('');
+  const [editAssignee, setEditAssignee] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
+  const [editStatus, setEditStatus] = useState<Task['status']>('pending');
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +62,38 @@ export default function Tasks() {
     setNewDesc('');
     setNewAssignee('');
     setShowAddModal(false);
+  };
+
+  const handleEditClick = (task: Task) => {
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditDesc(task.description || '');
+    setEditPriority(task.priority || 'medium');
+    setEditDept(task.department || 'Департамент IT и цифровизации');
+    setEditAssignee(task.assignee || '');
+    setEditDeadline(task.deadline || '');
+    setEditStatus(task.status || 'pending');
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask) return;
+    await updateTaskDetails(editingTask.id, {
+      title: editTitle,
+      description: editDesc,
+      priority: editPriority,
+      department: editDept,
+      assignee: editAssignee,
+      deadline: editDeadline,
+      status: editStatus
+    });
+    setEditingTask(null);
+  };
+
+  const handleDeleteClick = async (id: string) => {
+    if (window.confirm('Вы действительно хотите удалить это поручение?')) {
+      await deleteTask(id);
+    }
   };
 
   const filteredTasks = tasks.filter(task => {
@@ -234,6 +274,113 @@ export default function Tasks() {
               <button 
                 type="button" 
                 onClick={() => setShowAddModal(false)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                ОТМЕНА
+              </button>
+              <button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                СОЗДАТЬ
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Edit Task Modal overlay */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <form onSubmit={handleEditSave} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl max-w-xl w-full space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base font-display">Редактирование поручения</h3>
+              <button type="button" onClick={() => setEditingTask(null)} className="text-slate-400 hover:text-slate-600 text-sm">Закрыть</button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Формулировка поручения</label>
+                <input 
+                  type="text" required autoFocus
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Детальное описание / Инструкции</label>
+                <textarea 
+                  rows={2}
+                  value={editDesc}
+                  onChange={e => setEditDesc(e.target.value)}
+                  className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Приоритет</label>
+                  <select 
+                    value={editPriority}
+                    onChange={e => setEditPriority(e.target.value as any)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-white font-medium"
+                  >
+                    <option value="low">Низкий (Low)</option>
+                    <option value="medium">Средний (Medium)</option>
+                    <option value="high">Высокий (High)</option>
+                    <option value="urgent">Срочно (Urgent)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Департамент</label>
+                  <select 
+                    value={editDept}
+                    onChange={e => setEditDept(e.target.value)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-white font-medium"
+                  >
+                    {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Исполнитель</label>
+                  <input 
+                    type="text" required
+                    value={editAssignee}
+                    onChange={e => setEditAssignee(e.target.value)}
+                    className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Дедлайн</label>
+                  <input 
+                    type="date"
+                    value={editDeadline}
+                    onChange={e => setEditDeadline(e.target.value)}
+                    className="w-full text-sm border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Текущий статус</label>
+                  <select 
+                    value={editStatus}
+                    onChange={e => setEditStatus(e.target.value as any)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-white font-medium"
+                  >
+                    <option value="pending">Ожидает (Pending)</option>
+                    <option value="in_progress">В работе (In Progress)</option>
+                    <option value="completed">Выполнено (Completed)</option>
+                    <option value="overdue">Просрочено (Overdue)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button 
+                type="button" 
+                onClick={() => setEditingTask(null)}
                 className="bg-slate-100 hover:bg-slate-250 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs"
               >
                 ОТМЕНА
@@ -242,7 +389,7 @@ export default function Tasks() {
                 type="submit" 
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-xs"
               >
-                СОЗДАТЬ И ВНЕСТИ В СЭД
+                СОХРАНИТЬ
               </button>
             </div>
           </form>
@@ -260,12 +407,13 @@ export default function Tasks() {
                 <th className="py-3 px-4">Ответственный ведомства</th>
                 <th className="py-3 px-4">Приоритет</th>
                 <th className="py-3 px-4">Дедлайн</th>
+                <th className="py-3 px-4 w-24 text-center">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 italic-stripes text-xs">
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">Активных поручений по критериям фильтра не найдено.</td>
+                  <td colSpan={6} className="py-12 text-center text-slate-400">Активных поручений по критериям фильтра не найдено.</td>
                 </tr>
               ) : (
                 filteredTasks.map(task => (
@@ -302,6 +450,16 @@ export default function Tasks() {
                     <td className="py-3 px-4">
                       <span className={`font-mono text-[10px] ${task.status === 'overdue' ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>{task.deadline || 'Без срока'}</span>
                     </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => handleEditClick(task)} className="p-1 hover:bg-slate-100 rounded text-blue-600 cursor-pointer" title="Редактировать">
+                          <Edit2 size={13} />
+                        </button>
+                        <button onClick={() => handleDeleteClick(task.id)} className="p-1 hover:bg-slate-100 rounded text-rose-600 cursor-pointer" title="Удалить">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -328,28 +486,17 @@ export default function Tasks() {
                       <div key={task.id} className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs space-y-2 group hover:shadow-sm">
                         <div className="flex justify-between items-start gap-1">
                           <span className="text-[10px] font-bold text-slate-700 leading-tight block">{task.title}</span>
-                          <button 
-                            onClick={() => {
-                              // Cycle task status
-                              const cycleMap: Record<Task['status'], Task['status']> = {
-                                'pending': 'in_progress',
-                                'in_progress': 'completed',
-                                'completed': 'overdue',
-                                'overdue': 'pending'
-                              };
-                              updateTaskStatus(task.id, cycleMap[task.status]);
-                            }}
-                            className="text-[9px] text-blue-600 hover:underline font-bold tracking-tighter"
-                            title="Сменить статус"
-                          >
-                            СМЕНИТЬ
-                          </button>
                         </div>
                         {task.description && <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">{task.description}</p>}
                         
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-[9px] font-bold text-slate-400">
                           <span className="truncate max-w-[90px] text-slate-600">👤 {task.assignee}</span>
                           <span className="text-slate-500 font-mono">📅 {task.deadline}</span>
+                        </div>
+
+                        <div className="flex justify-end gap-1.5 pt-1">
+                          <button onClick={() => handleEditClick(task)} className="text-[9px] text-blue-600 hover:underline font-bold cursor-pointer">ИЗМЕНИТЬ</button>
+                          <button onClick={() => handleDeleteClick(task.id)} className="text-[9px] text-rose-600 hover:underline font-bold cursor-pointer">УДАЛИТЬ</button>
                         </div>
                       </div>
                     ))

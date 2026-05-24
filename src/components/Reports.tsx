@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Sparkles, TrendingUp, AlertTriangle, PlayCircle, Download, RefreshCw, FileSpreadsheet, CheckSquare } from 'lucide-react';
+import { logAIUsage } from '../lib/hooks';
 
 interface ReportTemplate {
   id: string;
@@ -90,16 +91,22 @@ export default function Reports() {
     setGenerating(true);
     setResult(null);
     try {
+      const customKey = JSON.parse(localStorage.getItem('ew_api_keys') || '[]').find((k: any) => k.id === 'gemini')?.key || '';
       const res = await fetch('/api/executive-summary', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-gemini-key': customKey
+        },
         body: JSON.stringify({ reportText })
       });
       const data = await res.json();
       if (res.ok && data.summaryRu) {
         setResult(data);
+        logAIUsage('/api/executive-summary', 'success', reportText.length, JSON.stringify(data).length);
       } else throw new Error();
     } catch {
+      logAIUsage('/api/executive-summary', 'error', reportText.length, 0);
       setTimeout(() => {
         setResult({
           summaryRu: "Аналитический отчет о ходе реновации тепловых сетей. Основное отставание зафиксировано в секторе №3.",
@@ -176,6 +183,211 @@ ${draftText || 'Обозначена необходимость доукомпл
 
   const handleApprove = (id: string) => {
     setSubReports(subReports.map(sr => sr.id === id ? { ...sr, status: 'approved' as const } : sr));
+  };
+
+  const handleExportExcel = () => {
+    if (!generatedResult) return;
+    const csvContent = "\uFEFF" + generatedResult.split('\n').map(line => {
+      if (line.includes(':')) {
+        const parts = line.split(':');
+        const key = parts[0].trim().replace(/"/g, '""');
+        const val = parts.slice(1).join(':').trim().replace(/"/g, '""');
+        return `"${key}";"${val}"`;
+      }
+      return `"${line.trim().replace(/"/g, '""')}"`;
+    }).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `report_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportWord = () => {
+    if (!generatedResult) return;
+    const template = reportTemplates.find(t => t.id === selectedTemplate);
+    const title = template?.name || 'Отчет';
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>${title}</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; line-height: 1.6; }
+          h1 { color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; font-size: 20pt; }
+          h2 { color: #334155; font-size: 14pt; margin-top: 20px; }
+          p { font-size: 11pt; color: #334155; }
+          pre { font-family: 'Consolas', monospace; font-size: 10pt; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .footer { text-align: center; font-size: 9pt; color: #64748b; margin-top: 50px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${title}</h1>
+          <p><strong>Период контроля:</strong> ${period}</p>
+          <p><strong>Дата создания:</strong> ${new Date().toLocaleDateString('ru-RU')}</p>
+        </div>
+        <div class="content">
+          ${generatedResult.split('\n').map(line => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('==') || trimmed.startsWith('--')) {
+              return '';
+            }
+            if (trimmed.match(/^[0-9]+\.\s/)) {
+              return `<h2>${trimmed}</h2>`;
+            }
+            return `<p>${trimmed}</p>`;
+          }).join('')}
+        </div>
+        <div class="footer">
+          <p>Документ составлен системой Executive Workspace.</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const blob = new Blob(['\uFEFF' + htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `report_${Date.now()}.doc`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintPDF = () => {
+    if (!generatedResult) return;
+    const template = reportTemplates.find(t => t.id === selectedTemplate);
+    const title = template?.name || 'Отчет';
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна.');
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 20mm;
+          }
+          body {
+            font-family: 'Arial', sans-serif;
+            color: #1e293b;
+            line-height: 1.6;
+            background: #fff;
+          }
+          .container {
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 5px;
+            color: #0f172a;
+          }
+          .subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 30px;
+          }
+          .meta-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 35px;
+            background-color: #f8fafc;
+          }
+          .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+          }
+          .meta-label {
+            font-weight: bold;
+            color: #475569;
+          }
+          .content-section {
+            margin-bottom: 25px;
+          }
+          .content-section h2 {
+            font-size: 16px;
+            border-bottom: 2px solid #cbd5e1;
+            padding-bottom: 6px;
+            color: #0f172a;
+            margin-top: 20px;
+            margin-bottom: 10px;
+          }
+          .content-section p {
+            font-size: 13px;
+            margin: 8px 0;
+          }
+          .footer {
+            text-align: center;
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 60px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>${title.toUpperCase()}</h1>
+          <div class="subtitle">Отчет исполнительной дисциплины</div>
+          
+          <div class="meta-box">
+            <div class="meta-grid">
+              <div><span class="meta-label">Период:</span> ${period}</div>
+              <div><span class="meta-label">Создано:</span> ${new Date().toLocaleDateString('ru-RU')}</div>
+              <div><span class="meta-label">Разработчик системы:</span> Executive Workspace</div>
+              <div><span class="meta-label">Статус:</span> Утвержден</div>
+            </div>
+          </div>
+          
+          <div class="content-section">
+            ${generatedResult.split('\n').map(line => {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('==') || trimmed.startsWith('--')) {
+                return '';
+              }
+              if (trimmed.match(/^[0-9]+\.\s/)) {
+                return `<h2>${trimmed}</h2>`;
+              }
+              return `<p>${trimmed}</p>`;
+            }).join('')}
+          </div>
+          
+          <div class="footer">
+            Документ сгенерирован автоматически в Personal Executive Control System.
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -346,12 +558,35 @@ ${draftText || 'Обозначена необходимость доукомпл
               <div className="bg-slate-900 text-slate-100 rounded-2xl p-6 font-mono text-xs space-y-4 shadow-lg">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                   <span className="text-[10px] text-emerald-400 font-bold uppercase">Предпросмотр</span>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(generatedResult); alert('Скопировано!'); }}
-                    className="px-2.5 py-1.5 bg-slate-800 text-emerald-400 rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-slate-700"
-                  >
-                    <Download size={13} /> Скопировать
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={handleExportExcel}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                      title="Экспорт в CSV для Excel"
+                    >
+                      <FileSpreadsheet size={13} /> Excel
+                    </button>
+                    <button
+                      onClick={handleExportWord}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                      title="Экспорт в DOC для Word"
+                    >
+                      <FileText size={13} /> Word
+                    </button>
+                    <button
+                      onClick={handlePrintPDF}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                      title="Печать PDF формата"
+                    >
+                      <Download size={13} /> PDF (Печать)
+                    </button>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(generatedResult); alert('Скопировано!'); }}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                    >
+                      <CheckSquare size={13} /> Скопировать
+                    </button>
+                  </div>
                 </div>
                 <pre className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-300">{generatedResult}</pre>
               </div>

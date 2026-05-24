@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Calendar, Users, FileText, Sparkles, Plus, Clock, Save, ChevronRight, Trash } from 'lucide-react';
-import { useTasks, useMeetings } from '../lib/hooks';
+import { Calendar, Users, FileText, Sparkles, Plus, Save, ChevronRight, Trash, Edit2 } from 'lucide-react';
+import { useTasks, useMeetings, logAIUsage } from '../lib/hooks';
+import { Meeting } from '../types';
 
 export default function Meetings() {
-  const { meetings, addMeeting } = useMeetings();
+  const { meetings, addMeeting, updateMeetingDetails, deleteMeeting } = useMeetings();
   const { addTask } = useTasks();
 
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
@@ -20,6 +21,14 @@ export default function Meetings() {
     tasks?: { title: string; assignee: string; deadline: string }[];
   } | null>(null);
 
+  // Edit states
+  const [editMode, setEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editParticipants, setEditParticipants] = useState('');
+  const [editAgenda, setEditAgenda] = useState('');
+  const [editDecisions, setEditDecisions] = useState('');
+
   const handleGenerate = async () => {
     if (!notes.trim()) return;
     setGenerating(true);
@@ -27,16 +36,22 @@ export default function Meetings() {
     try {
       const res = await fetch('/api/process-meeting', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-gemini-key': JSON.parse(localStorage.getItem('ew_api_keys') || '[]').find((k: any) => k.id === 'gemini')?.key || ''
+        },
         body: JSON.stringify({ notes })
       });
       const data = await res.json();
       if (res.ok && data.agenda) {
         setResult(data);
+        logAIUsage('/api/process-meeting', 'success', notes.length, JSON.stringify(data).length);
       } else {
+        logAIUsage('/api/process-meeting', 'error', notes.length, 0);
         throw new Error();
       }
     } catch {
+      logAIUsage('/api/process-meeting', 'error', notes.length, 0);
       setTimeout(() => {
         setResult({
           agenda: "Анализ исполнительской дисциплины и решение инфраструктурных задержек.",
@@ -61,8 +76,8 @@ export default function Meetings() {
       title: newTitle || `Совещание от ${newDate}`,
       date: newDate,
       participants: newParticipants.split(',').map(p => p.trim()).filter(Boolean),
-      agenda: result.agenda,
-      decisions: result.decisions,
+      agenda: result.agenda || '',
+      decisions: result.decisions || [],
       notes: notes
     });
     alert('Протокол сохранён!');
@@ -88,6 +103,35 @@ export default function Meetings() {
     alert('Поручения добавлены в задачи!');
   };
 
+  const handleStartEdit = (m: Meeting) => {
+    setEditMode(true);
+    setEditTitle(m.title);
+    setEditDate(m.date || '');
+    setEditParticipants(m.participants?.join(', ') || '');
+    setEditAgenda(m.agenda || '');
+    setEditDecisions(m.decisions?.join('\n') || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedMeetingId) return;
+    await updateMeetingDetails(selectedMeetingId, {
+      title: editTitle,
+      date: editDate,
+      participants: editParticipants.split(',').map(p => p.trim()).filter(Boolean),
+      agenda: editAgenda,
+      decisions: editDecisions.split('\n').map(d => d.trim()).filter(Boolean)
+    });
+    setEditMode(false);
+  };
+
+  const handleDeleteMeeting = async (id: string) => {
+    if (window.confirm('Вы действительно хотите удалить эту протокольную запись?')) {
+      await deleteMeeting(id);
+      setSelectedMeetingId(null);
+      setEditMode(false);
+    }
+  };
+
   const selectedMeeting = meetings.find(m => m.id === selectedMeetingId);
 
   return (
@@ -102,7 +146,7 @@ export default function Meetings() {
 
         <div className="ew-tabs">
           <button
-            onClick={() => setActiveTab('create')}
+            onClick={() => { setActiveTab('create'); setEditMode(false); }}
             className={`ew-tab ${activeTab === 'create' ? 'active' : ''}`}
           >
             Составить протокол
@@ -182,7 +226,7 @@ export default function Meetings() {
             <div className="flex justify-between items-center border-b pb-2 mb-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase">Протокол ИИ</h3>
               {result && (
-                <button onClick={handleSaveProtocol} className="text-xs text-blue-600 font-bold uppercase hover:underline flex items-center gap-1">
+                <button onClick={handleSaveProtocol} className="text-xs text-blue-600 font-bold uppercase hover:underline flex items-center gap-1 cursor-pointer">
                   <Save size={12} /> Сохранить
                 </button>
               )}
@@ -221,7 +265,7 @@ export default function Meetings() {
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Поручения ({result.tasks.length})</span>
-                      <button onClick={handleCreateTasks} className="text-[9px] font-bold uppercase bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded-lg">
+                      <button onClick={handleCreateTasks} className="text-[9px] font-bold uppercase bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded-lg cursor-pointer">
                         Внести в задачи
                       </button>
                     </div>
@@ -252,7 +296,7 @@ export default function Meetings() {
               meetings.map(m => (
                 <div
                   key={m.id}
-                  onClick={() => setSelectedMeetingId(m.id)}
+                  onClick={() => { setSelectedMeetingId(m.id); setEditMode(false); }}
                   className={`p-4 cursor-pointer flex justify-between items-start gap-3 transition-all ${
                     selectedMeetingId === m.id ? 'bg-blue-50 border-r-4 border-blue-500' : 'hover:bg-slate-50'
                   }`}
@@ -269,38 +313,118 @@ export default function Meetings() {
 
           <div className="lg:col-span-8 ew-card p-6 min-h-[400px]">
             {selectedMeeting ? (
-              <div className="space-y-6 text-xs">
-                <div className="border-b pb-4">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Протокольная запись</span>
-                  <h3 className="font-extrabold text-slate-900 text-base mt-1 font-display">{selectedMeeting.title}</h3>
-                  <div className="grid grid-cols-2 gap-4 mt-3 text-[10px]">
+              editMode ? (
+                /* Edit Mode */
+                <div className="space-y-4 text-xs">
+                  <div className="flex justify-between items-center border-b pb-3">
+                    <h3 className="font-bold text-slate-900 text-sm">Редактирование протокола</h3>
+                    <div className="flex gap-2">
+                      <button onClick={handleSaveEdit} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[10px] uppercase cursor-pointer">
+                        Сохранить
+                      </button>
+                      <button onClick={() => setEditMode(false)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[10px] uppercase cursor-pointer">
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-slate-400 uppercase font-semibold block">Дата</span>
-                      <span className="font-bold text-slate-700 block">{selectedMeeting.date}</span>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Название встречи</label>
+                      <input 
+                        type="text" 
+                        value={editTitle} 
+                        onChange={e => setEditTitle(e.target.value)} 
+                        className="w-full text-xs p-2.5 border rounded-xl" 
+                      />
                     </div>
                     <div>
-                      <span className="text-slate-400 uppercase font-semibold block">Участники</span>
-                      <span className="font-bold text-slate-700 block">{selectedMeeting.participants?.join(', ')}</span>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Дата</label>
+                      <input 
+                        type="date" 
+                        value={editDate} 
+                        onChange={e => setEditDate(e.target.value)} 
+                        className="w-full text-xs p-2.5 border rounded-xl" 
+                      />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Участники (через запятую)</label>
+                    <input 
+                      type="text" 
+                      value={editParticipants} 
+                      onChange={e => setEditParticipants(e.target.value)} 
+                      className="w-full text-xs p-2.5 border rounded-xl" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Повестка дня</label>
+                    <input 
+                      type="text" 
+                      value={editAgenda} 
+                      onChange={e => setEditAgenda(e.target.value)} 
+                      className="w-full text-xs p-2.5 border rounded-xl" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Принятые решения (по одному на строке)</label>
+                    <textarea 
+                      rows={4} 
+                      value={editDecisions} 
+                      onChange={e => setEditDecisions(e.target.value)} 
+                      className="w-full text-xs p-2.5 border rounded-xl font-mono" 
+                    />
                   </div>
                 </div>
+              ) : (
+                /* Read View */
+                <div className="space-y-6 text-xs">
+                  <div className="border-b pb-4 flex justify-between items-start">
+                    <div className="flex-1">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Протокольная запись</span>
+                      <h3 className="font-extrabold text-slate-900 text-base mt-1 font-display">{selectedMeeting.title}</h3>
+                      <div className="grid grid-cols-2 gap-4 mt-3 text-[10px]">
+                        <div>
+                          <span className="text-slate-400 uppercase font-semibold block">Дата</span>
+                          <span className="font-bold text-slate-700 block">{selectedMeeting.date}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 uppercase font-semibold block">Участники</span>
+                          <span className="font-bold text-slate-700 block">{selectedMeeting.participants?.join(', ')}</span>
+                        </div>
+                      </div>
+                    </div>
 
-                {selectedMeeting.agenda && (
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Повестка</span>
-                    <p className="bg-slate-50 p-4 rounded-xl border font-semibold text-slate-800">{selectedMeeting.agenda}</p>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => handleStartEdit(selectedMeeting)} className="p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 cursor-pointer" title="Редактировать">
+                        <Edit2 size={15} />
+                      </button>
+                      <button onClick={() => handleDeleteMeeting(selectedMeeting.id)} className="p-2 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-600 cursor-pointer" title="Удалить">
+                        <Trash size={15} />
+                      </button>
+                    </div>
                   </div>
-                )}
 
-                {selectedMeeting.decisions && selectedMeeting.decisions.length > 0 && (
-                  <div className="border-t pt-4">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Решения</span>
-                    <ol className="list-decimal pl-4 space-y-1.5 text-slate-700 font-medium">
-                      {selectedMeeting.decisions.map((dec, i) => <li key={i}>{dec}</li>)}
-                    </ol>
-                  </div>
-                )}
-              </div>
+                  {selectedMeeting.agenda && (
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Повестка</span>
+                      <p className="bg-slate-50 p-4 rounded-xl border font-semibold text-slate-800">{selectedMeeting.agenda}</p>
+                    </div>
+                  )}
+
+                  {selectedMeeting.decisions && selectedMeeting.decisions.length > 0 && (
+                    <div className="border-t pt-4">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Решения</span>
+                      <ol className="list-decimal pl-4 space-y-1.5 text-slate-700 font-medium">
+                        {selectedMeeting.decisions.map((dec, i) => <li key={i}>{dec}</li>)}
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              )
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 py-24">
                 <FileText size={32} className="opacity-30" />
