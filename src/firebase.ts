@@ -1,8 +1,21 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import defaultFirebaseConfig from '../firebase-applet-config.json';
 
+const getFirebaseConfig = () => {
+  const saved = localStorage.getItem('ew_firebase_config');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse ew_firebase_config from localStorage:', e);
+    }
+  }
+  return defaultFirebaseConfig;
+};
+
+const firebaseConfig = getFirebaseConfig();
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);

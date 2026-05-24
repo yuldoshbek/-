@@ -35,6 +35,32 @@ export default function Settings() {
     return saved ? JSON.parse(saved) : { usedRequests: 147, usedTokens: 588000, errors: 2, history: [] };
   });
 
+  const [customFirebaseConfig, setCustomFirebaseConfig] = useState(() => {
+    return localStorage.getItem('ew_firebase_config') || '';
+  });
+
+  const handleSaveCustomFirebaseConfig = () => {
+    if (!customFirebaseConfig.trim()) {
+      alert("Конфигурация не может быть пустой!");
+      return;
+    }
+    try {
+      JSON.parse(customFirebaseConfig);
+      localStorage.setItem('ew_firebase_config', customFirebaseConfig);
+      alert("Конфигурация Firebase успешно сохранена! Страница будет перезагружена.");
+      window.location.reload();
+    } catch (e: any) {
+      alert(`Ошибка валидации JSON: ${e.message}`);
+    }
+  };
+
+  const handleResetCustomFirebaseConfig = () => {
+    localStorage.removeItem('ew_firebase_config');
+    setCustomFirebaseConfig('');
+    alert("Конфигурация Firebase сброшена к исходной! Страница будет перезагружена.");
+    window.location.reload();
+  };
+
   useEffect(() => {
     localStorage.setItem('ew_api_keys', JSON.stringify(apiKeys));
   }, [apiKeys]);
@@ -440,6 +466,39 @@ export default function Settings() {
                 <p className="text-xs text-amber-800">
                   Сброс удалит все ваши изменения и восстановит демонстрационные данные из database.json.
                 </p>
+              </div>
+
+              {/* Custom Firebase configuration block */}
+              <div className="border-t pt-5 space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 font-display">
+                  Пользовательский Firebase (для обхода ошибки auth/unauthorized-domain)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Если вы запускаете систему на собственном домене, создайте проект в Firebase Console, включите Google Authentication, добавьте ваш домен в список разрешенных (Authorized Domains) и вставьте конфигурационную строку JSON ниже:
+                </p>
+                <textarea
+                  rows={6}
+                  value={customFirebaseConfig}
+                  onChange={e => setCustomFirebaseConfig(e.target.value)}
+                  placeholder={`{\n  "projectId": "your-project-id",\n  "appId": "1:...",\n  "apiKey": "AIzaSy...",\n  "authDomain": "your-project-id.firebaseapp.com",\n  "storageBucket": "your-project-id.firebasestorage.app",\n  "messagingSenderId": "..."\n}`}
+                  className="w-full text-xs font-mono p-3 border border-slate-200 rounded-xl bg-slate-50/50 focus:outline-none focus:border-blue-400"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveCustomFirebaseConfig}
+                    className="ew-btn ew-btn-primary"
+                  >
+                    <Save size={14} /> Применить конфигурацию
+                  </button>
+                  {localStorage.getItem('ew_firebase_config') && (
+                    <button
+                      onClick={handleResetCustomFirebaseConfig}
+                      className="ew-btn ew-btn-ghost text-rose-600 border-rose-200 hover:bg-rose-50"
+                    >
+                      Сбросить к проекту по умолчанию
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
