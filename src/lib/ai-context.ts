@@ -83,7 +83,7 @@ export const analyzeModuleContext = async (
 ): Promise<{
   insights: string[];
   warnings: string[];
-  actions: { label: string; action: string }[];
+  actions: { label: string; actionId: string }[];
 }> => {
   const systemPrompt = buildSystemPrompt(profile, moduleName);
   
@@ -97,7 +97,7 @@ export const analyzeModuleContext = async (
   "insights": ["Инсайт 1", "Инсайт 2"], // Полезные наблюдения по данным
   "warnings": ["Предупреждение 1"], // То, что требует внимания (просрочки, пустые поля)
   "actions": [
-    { "label": "Создать задачу для X", "action": "create_task" }
+    { "label": "Создать задачу для X", "actionId": "create_task_X" }
   ] // Рекомендуемые следующие шаги
 }
 

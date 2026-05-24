@@ -107,6 +107,19 @@ export default function Tasks() {
     return matchesSearch && matchesDept && matchesPriority;
   });
 
+  const handleAIAction = (actionId: string, label: string) => {
+    if (actionId.startsWith('create_task')) {
+      setNewTitle(label.replace(/^Создать задачу:?\s*/i, ''));
+      setNewDesc('Рекомендация ИИ-оркестратора.');
+      setNewAssignee('');
+      setShowAddModal(true);
+    } else if (actionId.startsWith('remind_') || actionId.startsWith('send_')) {
+      alert(`Действие выполнено: ${label} (Имитация отправки уведомления)`);
+    } else {
+      alert(`Система зафиксировала действие: ${label}`);
+    }
+  };
+
   const kanbanColumns: { id: Task['status']; title: string; color: string }[] = [
     { id: 'pending', title: 'Ожидает (Pending)', color: 'bg-slate-100 text-slate-800 border-t-slate-400' },
     { id: 'in_progress', title: 'В работе (In Progress)', color: 'bg-blue-50 text-blue-800 border-t-blue-500' },
@@ -158,7 +171,7 @@ export default function Tasks() {
 
       {/* AI Advisor Panel */}
       <div className="mb-4">
-        <AIAdvisor moduleName="tasks" contextData={filteredTasks} />
+        <AIAdvisor moduleName="tasks" contextData={filteredTasks} onExecuteAction={handleAIAction} />
       </div>
 
       {/* Filter and Search Panel */}

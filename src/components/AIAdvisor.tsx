@@ -6,15 +6,16 @@ import { analyzeModuleContext } from '../lib/ai-context';
 interface AIAdvisorProps {
   moduleName: string;
   contextData: any;
+  onExecuteAction?: (actionId: string, label: string) => void;
 }
 
-export default function AIAdvisor({ moduleName, contextData }: AIAdvisorProps) {
+export default function AIAdvisor({ moduleName, contextData, onExecuteAction }: AIAdvisorProps) {
   const { profile } = useWorkspace();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<{
     insights: string[];
     warnings: string[];
-    actions: { label: string; action: string }[];
+    actions: { label: string; actionId: string }[];
   } | null>(null);
 
   const performAnalysis = useCallback(async () => {
@@ -145,7 +146,11 @@ export default function AIAdvisor({ moduleName, contextData }: AIAdvisorProps) {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {analysis.actions.map((act, i) => (
-                      <button key={i} className="text-left w-full p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 transition-colors group flex items-center justify-between">
+                      <button 
+                        key={i} 
+                        onClick={() => onExecuteAction && onExecuteAction(act.actionId, act.label)}
+                        className="text-left w-full p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 transition-colors group flex items-center justify-between"
+                      >
                         <span className="text-xs text-slate-200 font-medium">{act.label}</span>
                         <div className="w-5 h-5 rounded-md bg-slate-700 group-hover:bg-blue-500 flex items-center justify-center transition-colors">
                           <Sparkles size={10} className="text-slate-400 group-hover:text-white" />

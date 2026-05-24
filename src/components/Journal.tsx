@@ -61,6 +61,24 @@ export default function Journal() {
     }
   };
 
+  const handleAIAction = async (actionId: string, label: string) => {
+    if (actionId.startsWith('create_task')) {
+      await addTask({
+        title: label.replace(/^Создать задачу:?\s*/i, ''),
+        description: 'Задача создана по рекомендации ИИ-оркестратора из модуля Журнал.',
+        status: 'pending',
+        priority: 'high',
+        assignee: 'Не назначено',
+        department: 'Общий',
+        deadline: '',
+        source: 'AI Advisor'
+      });
+      alert(`Задача "${label}" успешно создана! Перейдите в раздел Задачи.`);
+    } else {
+      alert(`Имитация действия: ${label}`);
+    }
+  };
+
   return (
     <div className="ew-page p-6 lg:p-8 max-w-6xl mx-auto h-full flex flex-col font-sans">
       <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
@@ -91,7 +109,7 @@ export default function Journal() {
 
       {/* AI Advisor Panel */}
       <div className="mb-6 shrink-0">
-        <AIAdvisor moduleName="journal" contextData={filtered} />
+        <AIAdvisor moduleName="journal" contextData={filtered} onExecuteAction={handleAIAction} />
       </div>
 
       <div className="flex gap-4 mb-6 border-b border-slate-200 shrink-0 overflow-x-auto pb-1">
