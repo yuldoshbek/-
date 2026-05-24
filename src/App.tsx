@@ -10,7 +10,10 @@ import {
   UserCircle,
   Sparkles,
   FolderOpen,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  BookOpen,
+  Users,
+  AlertTriangle,
 } from 'lucide-react';
 import { initAuth, logout, auth } from './firebase';
 import { User } from 'firebase/auth';
@@ -23,13 +26,14 @@ import Reports from './components/Reports';
 import Documents from './components/Documents';
 import AIAssistant from './components/AIAssistant';
 import Settings from './components/Settings';
+import Team from './components/Team';
+import Journal from './components/Journal';
+import Onboarding from './components/Onboarding';
+import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
 
 export default function App() {
   const [loadingContext, setLoadingContext] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [themeVariant, setThemeVariant] = useState<string>(() => {
-    return localStorage.getItem('executive_theme') || 'hybrid';
-  });
 
   useEffect(() => {
     const unsubscribe = initAuth(
@@ -54,16 +58,30 @@ export default function App() {
       <div className="flex min-h-screen items-center justify-center bg-[#FAFBFC]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-full border-[3px] border-blue-500 border-t-transparent animate-spin" />
-          <span className="text-sm font-semibold text-slate-500">Загрузка Executive Workspace...</span>
+          <span className="text-sm font-semibold text-slate-500">Загрузка Assistant OS...</span>
         </div>
       </div>
     );
   }
 
   return (
+    <WorkspaceProvider>
+      <AppContent user={user} onLogout={clearAuth} />
+    </WorkspaceProvider>
+  );
+}
+
+function AppContent({ user, onLogout }: { user: User | null; onLogout: () => void }) {
+  const { isProfileSelected } = useWorkspace();
+
+  if (!isProfileSelected) {
+    return <Onboarding />;
+  }
+
+  return (
     <BrowserRouter>
       <div className="flex h-screen overflow-hidden bg-[var(--ew-bg)]">
-        <Sidebar onLogout={clearAuth} user={user} />
+        <Sidebar onLogout={onLogout} user={user} />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <Topbar user={user} />
           <div className="flex-1 overflow-auto">
@@ -74,6 +92,8 @@ export default function App() {
               <Route path="/reports" element={<Reports />} />
               <Route path="/letters" element={<Letters />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/journal" element={<Journal />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
@@ -86,6 +106,7 @@ export default function App() {
 
 function Topbar({ user }: { user: User | null }) {
   const [sysTime, setSysTime] = useState('');
+  const { profile } = useWorkspace();
 
   useEffect(() => {
     const updateTime = () => {
@@ -101,7 +122,10 @@ function Topbar({ user }: { user: User | null }) {
     <div className="h-14 px-6 flex items-center justify-between border-b border-slate-200/80 bg-white/80 backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <span className="ew-pulse" />
-        <span className="text-xs font-semibold text-slate-500">Executive Workspace</span>
+        <span className="text-xs font-semibold text-slate-500">Assistant OS</span>
+        <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
+          {profile.icon} {profile.name}
+        </span>
       </div>
 
       <div className="flex items-center gap-4 text-xs">
@@ -121,17 +145,22 @@ function Topbar({ user }: { user: User | null }) {
 
 function Sidebar({ onLogout, user }: { onLogout: () => void; user: User | null }) {
   const location = useLocation();
+  const { getLabel, profile, isModuleVisible } = useWorkspace();
 
-  const navItems = [
-    { label: 'Главная', path: '/', icon: <LayoutDashboard size={18} /> },
-    { label: 'Задачи', path: '/tasks', icon: <CheckSquare size={18} /> },
-    { label: 'Совещания', path: '/meetings', icon: <Calendar size={18} /> },
-    { label: 'Отчётность', path: '/reports', icon: <FileText size={18} /> },
-    { label: 'Письма', path: '/letters', icon: <Mail size={18} /> },
-    { label: 'Документы', path: '/documents', icon: <FolderOpen size={18} /> },
-    { label: 'ИИ-Ассистент', path: '/ai-assistant', icon: <Sparkles size={18} /> },
-    { label: 'Настройки', path: '/settings', icon: <SettingsIcon size={18} /> },
+  const allNavItems = [
+    { moduleId: 'dashboard', label: getLabel('dashboard'), path: '/', icon: <LayoutDashboard size={18} /> },
+    { moduleId: 'tasks', label: getLabel('tasks'), path: '/tasks', icon: <CheckSquare size={18} /> },
+    { moduleId: 'meetings', label: getLabel('meetings'), path: '/meetings', icon: <Calendar size={18} /> },
+    { moduleId: 'reports', label: getLabel('reports'), path: '/reports', icon: <FileText size={18} /> },
+    { moduleId: 'letters', label: getLabel('letters'), path: '/letters', icon: <Mail size={18} /> },
+    { moduleId: 'documents', label: getLabel('documents'), path: '/documents', icon: <FolderOpen size={18} /> },
+    { moduleId: 'team', label: getLabel('team'), path: '/team', icon: <Users size={18} /> },
+    { moduleId: 'journal', label: getLabel('journal'), path: '/journal', icon: <BookOpen size={18} /> },
+    { moduleId: 'ai', label: getLabel('ai'), path: '/ai-assistant', icon: <Sparkles size={18} /> },
+    { moduleId: 'settings', label: getLabel('settings'), path: '/settings', icon: <SettingsIcon size={18} /> },
   ];
+
+  const visibleNavItems = allNavItems.filter(item => isModuleVisible(item.moduleId));
 
   return (
     <div className="w-64 flex flex-col shrink-0 flex-none h-full overflow-hidden bg-[#0F172A] text-slate-300">
@@ -140,18 +169,18 @@ function Sidebar({ onLogout, user }: { onLogout: () => void; user: User | null }
       <div className="p-5 border-b border-slate-800/60">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-            <span className="text-white text-xs font-bold">EW</span>
+            <span className="text-white text-xs font-bold">A</span>
           </div>
           <div>
-            <h2 className="font-bold text-white text-sm tracking-tight">Executive Workspace</h2>
-            <p className="text-[10px] text-slate-500 font-medium">Personal Control System</p>
+            <h2 className="font-bold text-white text-sm tracking-tight">Assistant OS</h2>
+            <p className="text-[10px] text-slate-500 font-medium">{profile.icon} {profile.name}</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navItems.map(item => {
+        {visibleNavItems.map(item => {
           const isActive = item.path === '/' 
             ? location.pathname === '/' 
             : location.pathname.startsWith(item.path);

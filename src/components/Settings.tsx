@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { User, Key, BarChart3, Database, Palette, Save, Eye, EyeOff, RefreshCw, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-react';
 import { auth, googleSignIn } from '../firebase';
 import { syncAllData, resetAllData } from '../lib/hooks';
+import { useWorkspace } from '../context/WorkspaceContext';
+import { Domain } from '../types';
+import { PROFILES, ALL_PROFILE_IDS } from '../lib/profiles';
 
 interface ApiKeyEntry {
   id: string;
@@ -16,6 +19,8 @@ export default function Settings() {
   const [syncing, setSyncing] = useState(false);
   const [themeVariant, setThemeVariant] = useState(() => localStorage.getItem('executive_theme') || 'hybrid');
   const [testingKeyId, setTestingKeyId] = useState<string | null>(null);
+  
+  const { domain, setDomain } = useWorkspace();
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<ApiKeyEntry[]>(() => {
@@ -242,6 +247,37 @@ export default function Settings() {
                   <span className="font-semibold text-slate-700">
                     {auth.currentUser?.providerData?.[0]?.providerId || 'anonymous'}
                   </span>
+                </div>
+              </div>
+
+              {/* Profile Selector */}
+              <div className="pt-4 border-t border-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 mb-1">Профиль системы</h3>
+                <p className="text-xs text-slate-500 mb-3">Выберите формат работы — система подстроит интерфейс, модули и ИИ.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {ALL_PROFILE_IDS.map(id => {
+                    const p = PROFILES[id];
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => setDomain(id)}
+                        className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                          domain === id
+                            ? 'border-blue-500 bg-blue-50/50 shadow-sm'
+                            : 'border-slate-200 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{p.icon}</span>
+                          <p className="font-bold text-sm text-slate-900">{p.name}</p>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-relaxed">{p.description}</p>
+                        {domain === id && (
+                          <span className="inline-block mt-2 text-[9px] font-bold text-blue-600 uppercase">✓ Активен</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

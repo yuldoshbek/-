@@ -9,6 +9,9 @@ export interface Task {
   status: 'pending' | 'in_progress' | 'completed' | 'overdue';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   risk?: string;
+  relatedMeetingId?: string;
+  relatedRiskId?: string;
+  relatedJournalId?: string;
   userId: string;
   createdAt: number;
   updatedAt: number;
@@ -22,6 +25,7 @@ export interface Meeting {
   agenda?: string;
   notes?: string;
   decisions?: string[];
+  relatedTaskIds?: string[];
   userId: string;
   createdAt: number;
   updatedAt: number;
@@ -180,6 +184,57 @@ export interface SubReport {
   title: string;
   content: string;
   userId?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type Domain = 'GOV' | 'CEO' | 'IT' | 'PRIVATE' | 'OPS' | 'PROJECT';
+
+export interface ProfileConfig {
+  id: Domain;
+  name: string;
+  description: string;
+  icon: string;
+  labels: Record<string, string>;
+  modules: string[];
+  aiTone: string;
+  aiRules: string[];
+  requiredFields: Record<string, string[]>;
+}
+
+export interface EntityLink {
+  id: string;
+  sourceType: string;
+  sourceId: string;
+  targetType: string;
+  targetId: string;
+  label?: string;
+  userId: string;
+  createdAt: number;
+}
+
+export interface Employee {
+  id: string;
+  fullName: string;
+  position: string;
+  departmentId: string;
+  email?: string;
+  phone?: string;
+  status: 'active' | 'inactive' | 'vacation';
+  userId: string;
+  createdAt: number;
+}
+
+export interface JournalEntry {
+  id: string;
+  type: 'complaint' | 'decision' | 'risk';
+  title: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assigneeId?: string;
+  relatedTaskId?: string;
+  userId: string;
   createdAt: number;
   updatedAt: number;
 }

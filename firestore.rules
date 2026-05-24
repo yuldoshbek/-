@@ -193,6 +193,41 @@ service cloud.firestore {
         && (data.updatedAt is int || data.updatedAt is string);
     }
 
+    function isValidEmployee(data, userId) {
+      return data.keys().hasAll(['fullName', 'position', 'departmentId', 'status', 'userId', 'createdAt'])
+        && data.fullName is string && data.fullName.size() <= 300
+        && data.position is string && data.position.size() <= 300
+        && data.departmentId is string && data.departmentId.size() <= 128
+        && data.status is string && data.status.matches('^(active|inactive|vacation)$')
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (!data.keys().hasAny(['email']) || (data.email is string && data.email.size() <= 200))
+        && (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 100));
+    }
+
+    function isValidDepartment(data, userId) {
+      return data.keys().hasAll(['name', 'head', 'tasksCount', 'overdueCount', 'kpi'])
+        && data.name is string && data.name.size() <= 300
+        && data.head is string && data.head.size() <= 300
+        && data.tasksCount is int
+        && data.overdueCount is int
+        && data.kpi is int;
+    }
+
+    function isValidJournalEntry(data, userId) {
+      return data.keys().hasAll(['type', 'title', 'description', 'status', 'priority', 'userId', 'createdAt', 'updatedAt'])
+        && data.type is string && data.type.matches('^(complaint|decision|risk)$')
+        && data.title is string && data.title.size() <= 600
+        && data.description is string && data.description.size() <= 120000
+        && data.status is string && data.status.matches('^(open|in_progress|closed)$')
+        && data.priority is string && data.priority.matches('^(low|medium|high|critical)$')
+        && data.userId == userId
+        && (data.createdAt is int || data.createdAt is string)
+        && (data.updatedAt is int || data.updatedAt is string)
+        && (!data.keys().hasAny(['assigneeId']) || (data.assigneeId is string && data.assigneeId.size() <= 128))
+        && (!data.keys().hasAny(['relatedTaskId']) || (data.relatedTaskId is string && data.relatedTaskId.size() <= 128));
+    }
+
     // Secured sub-resources matching
     match /users/{userId} {
       match /tasks/{taskId} {
@@ -360,6 +395,54 @@ service cloud.firestore {
           && isValidId(subReportId)
           && isValidSubReport(incoming(), userId)
           && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /employees/{employeeId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(employeeId)
+          && isValidEmployee(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(employeeId)
+          && isValidEmployee(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /departments/{departmentId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(departmentId)
+          && isValidDepartment(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(departmentId)
+          && isValidDepartment(incoming(), userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /journal_entries/{entryId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(entryId)
+          && isValidJournalEntry(incoming(), userId);
+        allow update: if isOwner(userId)
+          && isValidId(entryId)
+          && isValidJournalEntry(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /entity_links/{linkId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(linkId)
+          && incoming().sourceType is string && incoming().sourceType.size() <= 100
+          && incoming().sourceId is string && incoming().sourceId.size() <= 128
+          && incoming().targetType is string && incoming().targetType.size() <= 100
+          && incoming().targetId is string && incoming().targetId.size() <= 128
+          && incoming().userId == userId
+          && (incoming().createdAt is int || incoming().createdAt is string);
         allow delete: if isOwner(userId);
       }
     }
