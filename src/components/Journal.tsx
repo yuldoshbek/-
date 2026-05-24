@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { JournalEntry } from '../types';
 import { Plus, Search, AlertOctagon, CheckSquare, AlertTriangle, ArrowRight } from 'lucide-react';
+import { useTasks } from '../lib/hooks';
+import { addLink } from '../lib/relations';
+import EntityRelations from './EntityRelations';
 
 const MOCK_JOURNAL: JournalEntry[] = [
   { id: 'j-1', type: 'decision', title: 'Внедрение новой системы контроля', description: 'Решено перейти на новую систему с 1 июня.', status: 'closed', priority: 'high', userId: 'guest', createdAt: Date.now(), updatedAt: Date.now() },
@@ -11,6 +14,7 @@ const MOCK_JOURNAL: JournalEntry[] = [
 
 export default function Journal() {
   const { getLabel } = useWorkspace();
+  const { addTask } = useTasks();
   const [entries, setEntries] = useState<JournalEntry[]>(MOCK_JOURNAL);
   const [filterType, setFilterType] = useState<'all' | 'complaint' | 'decision' | 'risk'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,6 +40,23 @@ export default function Journal() {
       case 'risk': return 'Риск';
       case 'complaint': return 'Жалоба/Обращение';
       default: return type;
+    }
+  };
+
+  const handleCreateTaskFromJournal = async (entry: JournalEntry) => {
+    const taskId = await addTask({
+      title: `[${getTypeLabel(entry.type)}] ${entry.title}`.slice(0, 100),
+      description: `Запись журнала: ${entry.description}`,
+      status: 'pending',
+      priority: entry.priority === 'critical' ? 'urgent' : entry.priority === 'high' ? 'high' : 'medium',
+      assignee: 'Не назначено',
+      department: 'Общий',
+      deadline: '',
+      source: `Журнал: ${getTypeLabel(entry.type)}`
+    });
+    if (taskId) {
+      await addLink('journal', entry.id, 'task', taskId, entry.title);
+      alert('Задача успешно создана и привязана к записи!');
     }
   };
 
@@ -125,10 +146,17 @@ export default function Journal() {
                     {entry.status === 'open' ? 'Открыто' : entry.status === 'in_progress' ? 'В работе' : 'Закрыто'}
                   </span>
                 </div>
+                
+                <EntityRelations entityType="journal" entityId={entry.id} compact={true} />
               </div>
 
               <div className="shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-colors" title="Создать задачу на основе записи">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleCreateTaskFromJournal(entry); }}
+                  className="p-2 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-colors flex items-center gap-1" 
+                  title="Создать задачу на основе записи"
+                >
+                  <span className="text-[10px] font-bold uppercase hidden md:inline">Создать задачу</span>
                   <ArrowRight size={16} />
                 </button>
               </div>

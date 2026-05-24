@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Task } from '../types';
+import EntityRelations from './EntityRelations';
 
 export default function Tasks() {
   const { tasks, loading, addTask, updateTaskStatus, updateTaskDetails, deleteTask } = useTasks();
@@ -434,6 +435,7 @@ export default function Tasks() {
                       <div className="space-y-0.5">
                         <span className={`font-semibold block ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</span>
                         {task.description && <span className="text-[10px] text-slate-400 block line-clamp-1">{task.description}</span>}
+                        <EntityRelations entityType="task" entityId={task.id} compact={true} />
                       </div>
                     </td>
                     <td className="py-3 px-4">
@@ -488,6 +490,7 @@ export default function Tasks() {
                           <span className="text-[10px] font-bold text-slate-700 leading-tight block">{task.title}</span>
                         </div>
                         {task.description && <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">{task.description}</p>}
+                        <EntityRelations entityType="task" entityId={task.id} compact={true} />
                         
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-[9px] font-bold text-slate-400">
                           <span className="truncate max-w-[90px] text-slate-600">👤 {task.assignee}</span>

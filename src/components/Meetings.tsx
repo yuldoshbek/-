@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Calendar, Users, FileText, Sparkles, Plus, Save, ChevronRight, Trash, Edit2 } from 'lucide-react';
 import { useTasks, useMeetings, logAIUsage } from '../lib/hooks';
 import { Meeting } from '../types';
+import EntityRelations from './EntityRelations';
+import { addLink } from '../lib/relations';
 
 export default function Meetings() {
   const { meetings, addMeeting, updateMeetingDetails, deleteMeeting } = useMeetings();
@@ -101,6 +103,23 @@ export default function Meetings() {
       });
     }
     alert('Поручения добавлены в задачи!');
+  };
+
+  const handleCreateTaskFromDecision = async (meeting: Meeting, decision: string) => {
+    const taskId = await addTask({
+      title: decision.slice(0, 50) + (decision.length > 50 ? '...' : ''),
+      description: `Создано из решения: ${decision}`,
+      status: 'pending',
+      priority: 'medium',
+      assignee: 'Не назначено',
+      department: 'Общий',
+      deadline: '',
+      source: `Встреча: ${meeting.title}`
+    });
+    if (taskId) {
+      await addLink('meeting', meeting.id, 'task', taskId, meeting.title);
+      alert('Задача успешно создана и привязана к встрече!');
+    }
   };
 
   const handleStartEdit = (m: Meeting) => {
@@ -419,10 +438,22 @@ export default function Meetings() {
                     <div className="border-t pt-4">
                       <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Решения</span>
                       <ol className="list-decimal pl-4 space-y-1.5 text-slate-700 font-medium">
-                        {selectedMeeting.decisions.map((dec, i) => <li key={i}>{dec}</li>)}
+                        {selectedMeeting.decisions.map((dec, i) => (
+                          <li key={i} className="group">
+                            <span>{dec}</span>
+                            <button 
+                              onClick={() => handleCreateTaskFromDecision(selectedMeeting, dec)}
+                              className="ml-2 text-[9px] text-blue-500 opacity-0 group-hover:opacity-100 uppercase font-bold transition-opacity cursor-pointer hover:underline"
+                            >
+                              + Создать задачу
+                            </button>
+                          </li>
+                        ))}
                       </ol>
                     </div>
                   )}
+
+                  <EntityRelations entityType="meeting" entityId={selectedMeeting.id} />
                 </div>
               )
             ) : (
