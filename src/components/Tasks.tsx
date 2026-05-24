@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Task } from '../types';
 import EntityRelations from './EntityRelations';
+import AIAdvisor from './AIAdvisor';
 
 export default function Tasks() {
   const { tasks, loading, addTask, updateTaskStatus, updateTaskDetails, deleteTask } = useTasks();
@@ -154,6 +155,11 @@ export default function Tasks() {
           </button>
         </div>
       </header>
+
+      {/* AI Advisor Panel */}
+      <div className="mb-4">
+        <AIAdvisor moduleName="tasks" contextData={filteredTasks} />
+      </div>
 
       {/* Filter and Search Panel */}
       <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">

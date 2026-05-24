@@ -71,3 +71,76 @@ export const getModuleAIHint = (profile: ProfileConfig, moduleId: string): strin
 
   return hints[moduleId]?.[profile.id] || 'ИИ поможет с текущей задачей.';
 };
+
+/**
+ * Analyzes the given module data (e.g. tasks array, journal entries) using Gemini API
+ * and returns structured insights, warnings, and suggested actions.
+ */
+export const analyzeModuleContext = async (
+  profile: ProfileConfig,
+  moduleName: string,
+  contextData: any
+): Promise<{
+  insights: string[];
+  warnings: string[];
+  actions: { label: string; action: string }[];
+}> => {
+  const systemPrompt = buildSystemPrompt(profile, moduleName);
+  
+  const prompt = `${systemPrompt}
+
+Тебе передан текущий контекст модуля (данные на экране пользователя).
+Проанализируй их и верни результат СТРОГО в формате JSON, без маркдауна и лишних символов.
+
+Ожидаемый формат JSON:
+{
+  "insights": ["Инсайт 1", "Инсайт 2"], // Полезные наблюдения по данным
+  "warnings": ["Предупреждение 1"], // То, что требует внимания (просрочки, пустые поля)
+  "actions": [
+    { "label": "Создать задачу для X", "action": "create_task" }
+  ] // Рекомендуемые следующие шаги
+}
+
+ДАННЫЕ МОДУЛЯ:
+${JSON.stringify(contextData, null, 2).slice(0, 3000)}`;
+
+  try {
+    const apiKeys = JSON.parse(localStorage.getItem('ew_api_keys') || '[]');
+    const geminiKey = apiKeys.find((k: any) => k.id === 'gemini')?.key;
+    
+    if (!geminiKey) {
+      throw new Error('API Key not found');
+    }
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    if (!res.ok) throw new Error('API Error');
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('No text in response');
+    
+    const parsed = JSON.parse(text);
+    return {
+      insights: parsed.insights || [],
+      warnings: parsed.warnings || [],
+      actions: parsed.actions || []
+    };
+  } catch (error) {
+    console.error('AI Context Analysis Error:', error);
+    // Fallback if API fails or no key
+    return {
+      insights: ['Подключите API ключ Gemini в настройках для получения AI-аналитики.'],
+      warnings: [],
+      actions: []
+    };
+  }
+};

@@ -5,6 +5,7 @@ import { Plus, Search, AlertOctagon, CheckSquare, AlertTriangle, ArrowRight } fr
 import { useTasks } from '../lib/hooks';
 import { addLink } from '../lib/relations';
 import EntityRelations from './EntityRelations';
+import AIAdvisor from './AIAdvisor';
 
 const MOCK_JOURNAL: JournalEntry[] = [
   { id: 'j-1', type: 'decision', title: 'Внедрение новой системы контроля', description: 'Решено перейти на новую систему с 1 июня.', status: 'closed', priority: 'high', userId: 'guest', createdAt: Date.now(), updatedAt: Date.now() },
@@ -87,6 +88,11 @@ export default function Journal() {
           </button>
         </div>
       </header>
+
+      {/* AI Advisor Panel */}
+      <div className="mb-6 shrink-0">
+        <AIAdvisor moduleName="journal" contextData={filtered} />
+      </div>
 
       <div className="flex gap-4 mb-6 border-b border-slate-200 shrink-0 overflow-x-auto pb-1">
         {[
