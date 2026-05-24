@@ -142,7 +142,7 @@ export default function Dashboard() {
         </Link>
 
         <Link 
-          to="/journal" 
+          to="/issues" 
           className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-emerald-400 transition-all hover:scale-[1.01] cursor-pointer"
         >
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -178,7 +178,7 @@ export default function Dashboard() {
           </Link>
 
           <Link 
-            to="/journal" 
+            to="/issues" 
             className="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-rose-300 hover:shadow-md transition-all group cursor-pointer"
           >
             <AlertTriangle size={20} className="text-slate-400 group-hover:text-rose-500 mb-2 transition-colors" />

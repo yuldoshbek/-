@@ -1,7 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Sparkles, TrendingUp, AlertTriangle, PlayCircle, Download, RefreshCw, FileSpreadsheet, CheckSquare } from 'lucide-react';
-import { logAIUsage } from '../lib/hooks';
+import React, { useState } from 'react';
+import { 
+  FileText, 
+  Sparkles, 
+  TrendingUp, 
+  AlertTriangle, 
+  PlayCircle, 
+  Download, 
+  RefreshCw, 
+  FileSpreadsheet, 
+  CheckSquare, 
+  Plus, 
+  Check, 
+  Trash2,
+  FileCheck,
+  ClipboardList
+} from 'lucide-react';
+import { useReports, useSubReports, logAIUsage } from '../lib/hooks';
 import { getAIHeaders } from '../lib/ai-context';
+import { Report, SubReport } from '../types';
 
 interface ReportTemplate {
   id: string;
@@ -16,44 +32,36 @@ const reportTemplates: ReportTemplate[] = [
   { id: 'rep-t-3', name: 'Оценка операционных рисков и инцидентов', category: 'Безопасность', description: 'Реестр потенциальных угроз и мер по их нивелированию.' }
 ];
 
-interface EmployeeSubReport {
-  id: string;
-  employee: string;
-  department: string;
-  period: string;
-  status: 'draft' | 'pending_review' | 'approved';
-  achievements: string;
-  blockers: string;
-  submittedAt: string;
-}
-
-const mockSubReports: EmployeeSubReport[] = [
-  {
-    id: 'sub-r-1',
-    employee: 'Ахмедов Рустам',
-    department: 'Департамент IT и цифровизации',
-    period: 'Май 2026',
-    status: 'pending_review',
-    achievements: 'Завершена пилотная интеграция Google Keep и Google Drive в общую систему.',
-    blockers: 'Задержка получения токена API из центрального узла.',
-    submittedAt: '2026-05-22'
-  },
-  {
-    id: 'sub-r-2',
-    employee: 'Кадырова Малика',
-    department: 'Финансовый департамент',
-    period: 'Май 2026',
-    status: 'approved',
-    achievements: 'Предоставлен полный акт сверки по бюджету капитальных затрат.',
-    blockers: 'Нет',
-    submittedAt: '2026-05-19'
-  }
-];
-
 export default function Reports() {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'generator' | 'employee'>('analytics');
+  const { reports, loading: loadingReports, addReport, updateReportStatus, deleteReport } = useReports();
+  const { subReports, loading: loadingSubReports, addSubReport } = useSubReports();
 
-  // ═══ Analytics tab state ═══
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'archive' | 'generator' | 'employee_reports' | 'forms' | 'export' | 'ai_analysis'>('archive');
+
+  // Modal visibility states
+  const [showAddReportModal, setShowAddReportModal] = useState(false);
+  const [showAddSubReportModal, setShowAddSubReportModal] = useState(false);
+
+  // Form states for creating a report manually
+  const [reportTitle, setReportTitle] = useState('');
+  const [reportDept, setReportDept] = useState('Проектный офис');
+  const [reportStatus, setReportStatus] = useState<'pending' | 'submitted' | 'approved'>('submitted');
+  const [reportSummary, setReportSummary] = useState('');
+
+  // Form states for submitting employee sub-report
+  const [subReportTitle, setSubReportTitle] = useState('');
+  const [subReportContent, setSubReportContent] = useState('');
+
+  // Generator states
+  const [selectedTemplate, setSelectedTemplate] = useState('rep-t-1');
+  const [period, setPeriod] = useState('Май 2026');
+  const [format, setFormat] = useState('PDF Standard');
+  const [draftText, setDraftText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedResult, setGeneratedResult] = useState('');
+
+  // AI Analysis states
   const [reportText, setReportText] = useState('');
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<{
@@ -64,29 +72,7 @@ export default function Reports() {
     proposedDecisions?: string[];
   } | null>(null);
 
-  // ═══ Generator tab state ═══
-  const [selectedTemplate, setSelectedTemplate] = useState('rep-t-1');
-  const [period, setPeriod] = useState('Май 2026');
-  const [format, setFormat] = useState('PDF Standard');
-  const [draftText, setDraftText] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedResult, setGeneratedResult] = useState('');
-
-  // ═══ Employee reports tab state ═══
-  const [subReports, setSubReports] = useState<EmployeeSubReport[]>(() => {
-    const saved = localStorage.getItem('tmk_employee_sub_reports');
-    return saved ? JSON.parse(saved) : mockSubReports;
-  });
-  const [newEmployee, setNewEmployee] = useState('');
-  const [newDept, setNewDept] = useState('Департамент IT и цифровизации');
-  const [newAchieve, setNewAchieve] = useState('');
-  const [newBlockers, setNewBlockers] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem('tmk_employee_sub_reports', JSON.stringify(subReports));
-  }, [subReports]);
-
-  // ═══ Analytics handlers ═══
+  // Handlers
   const handleAnalyze = async () => {
     if (!reportText.trim()) return;
     setGenerating(true);
@@ -127,7 +113,6 @@ export default function Reports() {
     }
   };
 
-  // ═══ Generator handlers ═══
   const handleGenerateReport = (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
@@ -159,32 +144,42 @@ ${draftText || 'Обозначена необходимость доукомпл
     }, 1200);
   };
 
-  // ═══ Employee report handlers ═══
-  const handleSubmitSubReport = (e: React.FormEvent) => {
+  const handleCreateReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmployee.trim() || !newAchieve.trim()) return;
-    setSubReports([{
-      id: `sub-r-${Date.now()}`,
-      employee: newEmployee.trim(),
-      department: newDept,
-      period: 'Май 2026',
-      status: 'pending_review',
-      achievements: newAchieve.trim(),
-      blockers: newBlockers.trim() || 'Нет',
-      submittedAt: new Date().toISOString().split('T')[0]
-    }, ...subReports]);
-    setNewEmployee('');
-    setNewAchieve('');
-    setNewBlockers('');
+    if (!reportTitle.trim()) return;
+    await addReport({
+      title: reportTitle,
+      department: reportDept,
+      status: reportStatus,
+      summary: reportSummary
+    });
+    setReportTitle('');
+    setReportSummary('');
+    setShowAddReportModal(false);
+    alert('Отчет успешно добавлен в архив!');
   };
 
-  const handleApprove = (id: string) => {
-    setSubReports(subReports.map(sr => sr.id === id ? { ...sr, status: 'approved' as const } : sr));
+  const handleCreateSubReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subReportTitle.trim() || !subReportContent.trim()) return;
+    await addSubReport(subReportTitle, subReportContent);
+    setSubReportTitle('');
+    setSubReportContent('');
+    setShowAddSubReportModal(false);
+    alert('Отчет сотрудника успешно добавлен!');
   };
 
+  const handleDeleteReportClick = async (id: string) => {
+    if (window.confirm('Вы действительно хотите удалить этот отчёт?')) {
+      await deleteReport(id);
+    }
+  };
+
+  // Exporters
   const handleExportExcel = () => {
-    if (!generatedResult) return;
-    const csvContent = "\uFEFF" + generatedResult.split('\n').map(line => {
+    const textToExport = generatedResult || (reports.map(r => `${r.title} - ${r.department} - ${r.status}`).join('\n'));
+    if (!textToExport) return;
+    const csvContent = "\uFEFF" + textToExport.split('\n').map(line => {
       if (line.includes(':')) {
         const parts = line.split(':');
         const key = parts[0].trim().replace(/"/g, '""');
@@ -198,51 +193,28 @@ ${draftText || 'Обозначена необходимость доукомпл
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `report_${Date.now()}.csv`);
+    link.setAttribute("download", `reports_export_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleExportWord = () => {
-    if (!generatedResult) return;
-    const template = reportTemplates.find(t => t.id === selectedTemplate);
-    const title = template?.name || 'Отчет';
+    const textToExport = generatedResult || (reports.map(r => `${r.title} - ${r.department} - ${r.status}`).join('\n'));
+    if (!textToExport) return;
     const htmlContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
-        <title>${title}</title>
+        <title>Экспорт Отчетов</title>
         <style>
           body { font-family: 'Arial', sans-serif; line-height: 1.6; }
           h1 { color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; font-size: 20pt; }
-          h2 { color: #334155; font-size: 14pt; margin-top: 20px; }
           p { font-size: 11pt; color: #334155; }
-          pre { font-family: 'Consolas', monospace; font-size: 10pt; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .footer { text-align: center; font-size: 9pt; color: #64748b; margin-top: 50px; }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>${title}</h1>
-          <p><strong>Период контроля:</strong> ${period}</p>
-          <p><strong>Дата создания:</strong> ${new Date().toLocaleDateString('ru-RU')}</p>
-        </div>
-        <div class="content">
-          ${generatedResult.split('\n').map(line => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('==') || trimmed.startsWith('--')) {
-              return '';
-            }
-            if (trimmed.match(/^[0-9]+\.\s/)) {
-              return `<h2>${trimmed}</h2>`;
-            }
-            return `<p>${trimmed}</p>`;
-          }).join('')}
-        </div>
-        <div class="footer">
-          <p>Документ составлен системой Executive Workspace.</p>
-        </div>
+        <h1>АРХИВ ОТЧЕТОВ</h1>
+        <pre>${textToExport}</pre>
       </body>
       </html>
     `;
@@ -250,131 +222,32 @@ ${draftText || 'Обозначена необходимость доукомпл
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `report_${Date.now()}.doc`);
+    link.setAttribute("download", `reports_export_${Date.now()}.doc`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handlePrintPDF = () => {
-    if (!generatedResult) return;
-    const template = reportTemplates.find(t => t.id === selectedTemplate);
-    const title = template?.name || 'Отчет';
+    const textToExport = generatedResult || (reports.map(r => `${r.title} - ${r.department} - ${r.status}`).join('\n'));
+    if (!textToExport) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Не удалось открыть окно печати. Пожалуйста, разрешите всплывающие окна.');
+      alert('Не удалось открыть окно печати.');
       return;
     }
     printWindow.document.write(`
       <html>
       <head>
-        <title>${title}</title>
+        <title>Экспорт Отчетов</title>
         <style>
-          @page {
-            size: A4;
-            margin: 20mm;
-          }
-          body {
-            font-family: 'Arial', sans-serif;
-            color: #1e293b;
-            line-height: 1.6;
-            background: #fff;
-          }
-          .container {
-            max-width: 800px;
-            margin: 0 auto;
-          }
-          h1 {
-            font-size: 24px;
-            text-align: center;
-            margin-bottom: 5px;
-            color: #0f172a;
-          }
-          .subtitle {
-            text-align: center;
-            font-size: 14px;
-            color: #64748b;
-            margin-bottom: 30px;
-          }
-          .meta-box {
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 35px;
-            background-color: #f8fafc;
-          }
-          .meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-size: 12px;
-          }
-          .meta-label {
-            font-weight: bold;
-            color: #475569;
-          }
-          .content-section {
-            margin-bottom: 25px;
-          }
-          .content-section h2 {
-            font-size: 16px;
-            border-bottom: 2px solid #cbd5e1;
-            padding-bottom: 6px;
-            color: #0f172a;
-            margin-top: 20px;
-            margin-bottom: 10px;
-          }
-          .content-section p {
-            font-size: 13px;
-            margin: 8px 0;
-          }
-          .footer {
-            text-align: center;
-            font-size: 10px;
-            color: #94a3b8;
-            margin-top: 60px;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 15px;
-          }
-          @media print {
-            body {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-          }
+          body { font-family: 'Arial', sans-serif; padding: 20px; line-height: 1.6; }
+          pre { background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; font-size: 12px; }
         </style>
       </head>
       <body>
-        <div class="container">
-          <h1>${title.toUpperCase()}</h1>
-          <div class="subtitle">Отчет исполнительной дисциплины</div>
-          
-          <div class="meta-box">
-            <div class="meta-grid">
-              <div><span class="meta-label">Период:</span> ${period}</div>
-              <div><span class="meta-label">Создано:</span> ${new Date().toLocaleDateString('ru-RU')}</div>
-              <div><span class="meta-label">Разработчик системы:</span> Executive Workspace</div>
-              <div><span class="meta-label">Статус:</span> Утвержден</div>
-            </div>
-          </div>
-          
-          <div class="content-section">
-            ${generatedResult.split('\n').map(line => {
-              const trimmed = line.trim();
-              if (trimmed.startsWith('==') || trimmed.startsWith('--')) {
-                return '';
-              }
-              if (trimmed.match(/^[0-9]+\.\s/)) {
-                return `<h2>${trimmed}</h2>`;
-              }
-              return `<p>${trimmed}</p>`;
-            }).join('')}
-          </div>
-          
-          <div class="footer">
-            Документ сгенерирован автоматически в Personal Executive Control System.
-          </div>
-        </div>
+        <h2>АРХИВ ОТЧЕТОВ EXECUTIVE WORKSPACE</h2>
+        <pre>${textToExport}</pre>
         <script>
           window.onload = function() {
             window.print();
@@ -387,129 +260,132 @@ ${draftText || 'Обозначена необходимость доукомпл
     printWindow.document.close();
   };
 
+  const handleApplyTemplate = (tId: string) => {
+    setSelectedTemplate(tId);
+    setActiveTab('generator');
+  };
+
   return (
     <div className="ew-page p-6 lg:p-8 max-w-7xl mx-auto font-sans space-y-6">
 
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">Отчётность</h1>
-          <p className="text-slate-500 text-sm mt-0.5">ИИ-аналитика, генератор докладов и отчёты сотрудников</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">Отчёты</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Архив отчётов дирекции, ИИ-анализ и журнал отчётов персонала</p>
         </div>
 
-        <div className="ew-tabs">
+        <div className="flex gap-2">
+          {activeTab === 'archive' && (
+            <button
+              onClick={() => setShowAddReportModal(true)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-xs uppercase cursor-pointer transition-colors shadow-sm"
+            >
+              <Plus size={14} /> Зарегистрировать отчёт
+            </button>
+          )}
+          {activeTab === 'employee_reports' && (
+            <button
+              onClick={() => setShowAddSubReportModal(true)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-xs uppercase cursor-pointer transition-colors shadow-sm"
+            >
+              <Plus size={14} /> Добавить отчёт сотрудника
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Sub-tab navigation */}
+      <div className="border-b border-slate-200">
+        <nav className="flex gap-6 -mb-px overflow-x-auto">
           {[
-            { id: 'analytics' as const, label: 'ИИ-Аналитика' },
-            { id: 'generator' as const, label: 'Генератор' },
-            { id: 'employee' as const, label: `Сотрудники (${subReports.length})` },
+            { id: 'archive', label: 'Отчёты' },
+            { id: 'generator', label: 'Генератор отчётов' },
+            { id: 'employee_reports', label: 'Отчёты сотрудников' },
+            { id: 'forms', label: 'Формы / Шаблоны' },
+            { id: 'export', label: 'Экспорт (PDF / Excel)' },
+            { id: 'ai_analysis', label: 'AI-анализ отчёта' }
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`ew-tab ${activeTab === tab.id ? 'active' : ''}`}
+              type="button"
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`pb-4 px-1 text-sm font-semibold border-b-2 cursor-pointer transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
             >
               {tab.label}
             </button>
           ))}
-        </div>
-      </header>
+        </nav>
+      </div>
 
-      {/* ═══ TAB: Analytics ═══ */}
-      {activeTab === 'analytics' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="ew-card p-6 space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-2">Текст входящего отчета</h3>
-            <textarea
-              value={reportText}
-              onChange={e => setReportText(e.target.value)}
-              placeholder="Вставьте текст отчета со статистикой..."
-              className="w-full h-80 p-4 border border-slate-200 rounded-xl text-xs bg-slate-50/40 font-mono focus:outline-none focus:border-blue-400 resize-none"
-            />
-            <div className="flex justify-end border-t pt-3">
-              <button
-                onClick={handleAnalyze}
-                disabled={generating || !reportText.trim()}
-                className="ew-btn ew-btn-primary disabled:opacity-50"
-              >
-                <Sparkles size={14} className={generating ? 'animate-spin' : ''} />
-                ИИ-Аудит и Сжатие
-              </button>
-            </div>
+      {/* ═══ 1. ARCHIVE TAB ═══ */}
+      {activeTab === 'archive' && (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
+            <h3 className="font-bold text-slate-800 text-sm">Реестр отчетов руководства</h3>
+            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold font-mono rounded">
+              Всего отчетов: {reports.length}
+            </span>
           </div>
 
-          <div className="ew-card p-6 min-h-[450px] flex flex-col">
-            <h3 className="text-xs font-bold text-slate-400 uppercase border-b pb-2 mb-4">Управленческий брифинг</h3>
-
-            {!result && !generating && (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 space-y-3">
-                <TrendingUp size={32} className="opacity-30" />
-                <p className="text-xs font-semibold">Сводка пуста</p>
-                <p className="text-[10px] max-w-xs text-center">Загрузите отчет. ИИ выявит риски и предложит решения.</p>
-              </div>
-            )}
-
-            {generating && (
-              <div className="flex-1 flex flex-col items-center justify-center text-blue-500 space-y-3">
-                <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                <span className="text-[10px] font-mono uppercase tracking-wider">Семантический анализ...</span>
-              </div>
-            )}
-
-            {result && (
-              <div className="space-y-5 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Краткое содержание (RU)</span>
-                  <p className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-medium text-slate-800">{result.summaryRu}</p>
-                </div>
-
-                {result.summaryUz && (
-                  <div className="border-t pt-3">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Qisqa Mazmuni (UZ)</span>
-                    <p className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-serif italic text-slate-800">{result.summaryUz}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-3">
-                  {result.risks && result.risks.length > 0 && (
-                    <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl">
-                      <h4 className="font-bold text-rose-900 mb-2 flex items-center gap-1.5 text-xs">
-                        <AlertTriangle size={14} /> Риски
-                      </h4>
-                      <ul className="list-disc list-inside text-rose-800 space-y-1 text-[11px] font-semibold">
-                        {result.risks.map((r, i) => <li key={i}>{r}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                  {result.nextSteps && result.nextSteps.length > 0 && (
-                    <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
-                      <h4 className="font-bold text-emerald-900 mb-2 flex items-center gap-1.5 text-xs">
-                        <PlayCircle size={14} /> Рекомендации
-                      </h4>
-                      <ul className="list-disc list-inside text-emerald-800 space-y-1 text-[11px] font-semibold">
-                        {result.nextSteps.map((s, i) => <li key={i}>{s}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                {result.proposedDecisions && result.proposedDecisions.length > 0 && (
-                  <div className="border-t pt-4 space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Проекты решений</span>
-                    {result.proposedDecisions.map((d, i) => (
-                      <div key={i} className="bg-white border p-3 rounded-xl flex items-start gap-3 shadow-sm">
-                        <span className="flex items-center justify-center bg-slate-900 text-white w-5 h-5 rounded-full text-[10px] font-bold shrink-0">{String.fromCharCode(65 + i)}</span>
-                        <p className="text-slate-700 font-semibold">{d}</p>
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <th className="p-3 w-32">Статус</th>
+                <th className="p-3">Название отчёта / Сводка</th>
+                <th className="p-3">Департамент</th>
+                <th className="p-3">Дата создания</th>
+                <th className="p-3 text-center w-20">Действия</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loadingReports ? (
+                <tr><td colSpan={5} className="p-8 text-center text-slate-400">Загрузка...</td></tr>
+              ) : reports.length === 0 ? (
+                <tr><td colSpan={5} className="p-8 text-center text-slate-400">В архиве нет зарегистрированных отчётов.</td></tr>
+              ) : (
+                reports.map(r => (
+                  <tr key={r.id} className="hover:bg-slate-50/50">
+                    <td className="p-3">
+                      <select
+                        value={r.status}
+                        onChange={(e) => updateReportStatus(r.id, e.target.value as any)}
+                        className={`text-[9px] font-bold p-1 rounded border uppercase ${
+                          r.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                          r.status === 'submitted' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-amber-50 text-amber-800'
+                        }`}
+                      >
+                        <option value="pending">Ожидает</option>
+                        <option value="submitted">Сдан</option>
+                        <option value="approved">Утвержден</option>
+                      </select>
+                    </td>
+                    <td className="p-3">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-slate-800 text-xs block">{r.title}</span>
+                        {r.summary && <span className="text-[10px] text-slate-400 block font-medium">{r.summary}</span>}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                    </td>
+                    <td className="p-3 font-semibold text-slate-600">{r.department || 'Не указан'}</td>
+                    <td className="p-3 font-mono text-slate-500">{new Date(r.createdAt || Date.now()).toLocaleDateString('ru-RU')}</td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => handleDeleteReportClick(r.id)} className="p-1 hover:bg-slate-100 rounded text-rose-600 cursor-pointer" title="Удалить">
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* ═══ TAB: Generator ═══ */}
+      {/* ═══ 2. GENERATOR TAB ═══ */}
       {activeTab === 'generator' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="ew-card p-6 space-y-5">
@@ -528,11 +404,11 @@ ${draftText || 'Обозначена необходимость доукомпл
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Период</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Период контроля</label>
                 <input type="text" value={period} onChange={e => setPeriod(e.target.value)} className="w-full text-xs p-2.5 border border-slate-200 rounded-xl" required />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Формат</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Формат экспорта</label>
                 <select value={format} onChange={e => setFormat(e.target.value)} className="w-full text-xs p-2.5 border border-slate-200 rounded-xl">
                   <option value="PDF Standard">ГОСТ PDF</option>
                   <option value="Google Sheet">Google Sheets</option>
@@ -540,12 +416,12 @@ ${draftText || 'Обозначена необходимость доукомпл
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Комментарии</label>
-                <textarea rows={3} value={draftText} onChange={e => setDraftText(e.target.value)} placeholder="Замечания по задержкам..." className="w-full text-xs p-2.5 border border-slate-200 rounded-xl" />
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Комментарии и детали</label>
+                <textarea rows={3} value={draftText} onChange={e => setDraftText(e.target.value)} placeholder="Дополнительные комментарии..." className="w-full text-xs p-2.5 border border-slate-200 rounded-xl" />
               </div>
               <button type="submit" disabled={isGenerating} className="w-full ew-btn ew-btn-primary justify-center disabled:opacity-50">
                 {isGenerating ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {isGenerating ? 'Генерация...' : 'Сгенерировать'}
+                {isGenerating ? 'Генерация...' : 'Сгенерировать отчёт'}
               </button>
             </form>
           </div>
@@ -554,34 +430,16 @@ ${draftText || 'Обозначена необходимость доукомпл
             {generatedResult ? (
               <div className="bg-slate-900 text-slate-100 rounded-2xl p-6 font-mono text-xs space-y-4 shadow-lg">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <span className="text-[10px] text-emerald-400 font-bold uppercase">Предпросмотр</span>
+                  <span className="text-[10px] text-emerald-400 font-bold uppercase">Сгенерированный отчёт</span>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={handleExportExcel}
-                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-                      title="Экспорт в CSV для Excel"
-                    >
+                    <button onClick={handleExportExcel} className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors">
                       <FileSpreadsheet size={13} /> Excel
                     </button>
-                    <button
-                      onClick={handleExportWord}
-                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-                      title="Экспорт в DOC для Word"
-                    >
+                    <button onClick={handleExportWord} className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors">
                       <FileText size={13} /> Word
                     </button>
-                    <button
-                      onClick={handlePrintPDF}
-                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-                      title="Печать PDF формата"
-                    >
-                      <Download size={13} /> PDF (Печать)
-                    </button>
-                    <button
-                      onClick={() => { navigator.clipboard.writeText(generatedResult); alert('Скопировано!'); }}
-                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-                    >
-                      <CheckSquare size={13} /> Скопировать
+                    <button onClick={handlePrintPDF} className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors">
+                      <Download size={13} /> PDF Печать
                     </button>
                   </div>
                 </div>
@@ -597,79 +455,320 @@ ${draftText || 'Обозначена необходимость доукомпл
         </div>
       )}
 
-      {/* ═══ TAB: Employee Reports ═══ */}
-      {activeTab === 'employee' && (
+      {/* ═══ 3. EMPLOYEE REPORTS TAB ═══ */}
+      {activeTab === 'employee_reports' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="ew-card p-6 space-y-4">
-            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Подать отчёт</h3>
-            <form onSubmit={handleSubmitSubReport} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">ФИО</label>
-                <input type="text" value={newEmployee} onChange={e => setNewEmployee(e.target.value)} placeholder="Сабиров Шерзод" className="w-full text-xs p-2.5 border border-slate-200 rounded-xl" required />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Департамент</label>
-                <select value={newDept} onChange={e => setNewDept(e.target.value)} className="w-full text-xs p-2.5 border border-slate-200 rounded-xl">
-                  <option value="Департамент IT и цифровизации">IT</option>
-                  <option value="Финансовый департамент">Финансы</option>
-                  <option value="Департамент логистики и закупок">Логистика</option>
-                  <option value="Аналитический сектор">Аналитика</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Результаты</label>
-                <textarea rows={3} value={newAchieve} onChange={e => setNewAchieve(e.target.value)} placeholder="Выполнены контрольные закупки..." className="w-full text-xs p-2.5 border border-slate-200 rounded-xl" required />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Задержки</label>
-                <textarea rows={2} value={newBlockers} onChange={e => setNewBlockers(e.target.value)} placeholder="Отсутствуют..." className="w-full text-xs p-2.5 border border-slate-200 rounded-xl" />
-              </div>
-              <button type="submit" className="w-full ew-btn ew-btn-primary justify-center">
-                Подать на согласование
-              </button>
-            </form>
-          </div>
+          <div className="lg:col-span-3 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Отчеты сотрудников из базы данных</h3>
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-mono text-[10px]">Всего: {subReports.length}</span>
+            </div>
 
-          <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Поступившие отчёты</h3>
-            {subReports.map(sr => (
-              <div key={sr.id} className="ew-card p-5 space-y-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="font-bold text-slate-800 text-xs">{sr.employee}</h4>
-                    <span className="text-[9px] font-mono text-slate-400">{sr.department}</span>
+            {loadingSubReports ? (
+              <div className="text-center p-8 text-slate-400">Загрузка...</div>
+            ) : subReports.length === 0 ? (
+              <div className="ew-card p-12 text-center text-slate-400">Отчёты сотрудников отсутствуют. Вы можете добавить отчет вручную.</div>
+            ) : (
+              subReports.map(sr => (
+                <div key={sr.id} className="ew-card p-5 space-y-3 animate-fadeIn">
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs">{sr.title}</h4>
+                      <span className="text-[9px] font-mono text-slate-400 block mt-0.5">Дата подачи: {new Date(sr.createdAt || Date.now()).toLocaleDateString('ru-RU')}</span>
+                    </div>
+                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded text-[9px] font-bold uppercase">Сдан</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                    sr.status === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {sr.status === 'approved' ? 'Согласован' : 'На утверждении'}
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Результаты</span>
-                    <p className="text-slate-800 mt-0.5">{sr.achievements}</p>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Задержки</span>
-                    <p className="text-slate-600 italic mt-0.5">{sr.blockers}</p>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/55 text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    {sr.content}
                   </div>
                 </div>
-
-                <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                  <span>Передан: {sr.submittedAt}</span>
-                  {sr.status === 'pending_review' && (
-                    <button onClick={() => handleApprove(sr.id)} className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-bold uppercase">
-                      Утвердить
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}
+
+      {/* ═══ 4. FORMS TAB ═══ */}
+      {activeTab === 'forms' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {reportTemplates.map(template => (
+            <div key={template.id} className="ew-card p-6 flex flex-col justify-between space-y-4">
+              <div className="space-y-2">
+                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[9px] font-bold uppercase tracking-wider">{template.category}</span>
+                <h4 className="font-bold text-slate-800 text-sm">{template.name}</h4>
+                <p className="text-slate-500 text-xs leading-relaxed">{template.description}</p>
+              </div>
+              <button
+                onClick={() => handleApplyTemplate(template.id)}
+                className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-bold text-xs uppercase transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <ClipboardList size={13} /> Заполнить форму
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ═══ 5. EXPORT TAB ═══ */}
+      {activeTab === 'export' && (
+        <div className="ew-card p-8 text-center max-w-xl mx-auto space-y-6">
+          <Download size={48} className="text-blue-500 mx-auto opacity-75" />
+          <div className="space-y-2">
+            <h3 className="font-bold text-slate-800 text-base font-display">Экспорт и Выгрузки Отчётов</h3>
+            <p className="text-slate-500 text-xs leading-relaxed">
+              Выгрузите полный архив сданных отчетов дирекции или экспортируйте последний сгенерированный отчет в форматы PDF, Excel (CSV) или Word (DOC).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 pt-4">
+            <button onClick={handleExportExcel} className="p-4 bg-slate-50 hover:bg-slate-100 border rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors">
+              <FileSpreadsheet size={24} className="text-amber-500" />
+              <span className="text-[10px] font-bold uppercase text-slate-700">Excel CSV</span>
+            </button>
+            <button onClick={handleExportWord} className="p-4 bg-slate-50 hover:bg-slate-100 border rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors">
+              <FileText size={24} className="text-blue-500" />
+              <span className="text-[10px] font-bold uppercase text-slate-700">Word DOC</span>
+            </button>
+            <button onClick={handlePrintPDF} className="p-4 bg-slate-50 hover:bg-slate-100 border rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors">
+              <FileCheck size={24} className="text-rose-500" />
+              <span className="text-[10px] font-bold uppercase text-slate-700">PDF Печать</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ 6. AI ANALYSIS TAB ═══ */}
+      {activeTab === 'ai_analysis' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="ew-card p-6 space-y-4">
+            <div className="border-b pb-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">ИИ-Сканирование и Анализ отчета</h3>
+            </div>
+            <textarea
+              value={reportText}
+              onChange={e => setReportText(e.target.value)}
+              placeholder="Вставьте сюда текст отчета для ИИ анализа..."
+              className="w-full h-80 p-4 border border-slate-200 rounded-xl text-xs bg-slate-50/40 font-mono focus:outline-none focus:border-blue-400 resize-none"
+            />
+            <div className="flex justify-end border-t pt-3">
+              <button
+                onClick={handleAnalyze}
+                disabled={generating || !reportText.trim()}
+                className="ew-btn ew-btn-primary disabled:opacity-50"
+              >
+                <Sparkles size={14} className={generating ? 'animate-spin' : ''} />
+                Провести ИИ-Анализ
+              </button>
+            </div>
+          </div>
+
+          <div className="ew-card p-6 min-h-[450px] flex flex-col">
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b pb-2 mb-4">Управленческий брифинг ИИ</h3>
+
+            {!result && !generating && (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 space-y-3">
+                <TrendingUp size={32} className="opacity-30" />
+                <p className="text-xs font-semibold">Анализ пуст</p>
+                <p className="text-[10px] max-w-xs text-center">Запустите сканирование. ИИ автоматически выявит скрытые риски и составит рекомендации.</p>
+              </div>
+            )}
+
+            {generating && (
+              <div className="flex-1 flex flex-col items-center justify-center text-blue-500 space-y-3">
+                <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                <span className="text-[10px] font-mono uppercase tracking-wider">Анализ рисков и дисциплины...</span>
+              </div>
+            )}
+
+            {result && (
+              <div className="space-y-5 text-xs animate-fadeIn">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Выжимка (RU)</span>
+                  <p className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-medium text-slate-800">{result.summaryRu}</p>
+                </div>
+
+                {result.summaryUz && (
+                  <div className="border-t pt-3">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Qisqa Mazmuni (UZ)</span>
+                    <p className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-serif italic text-slate-800">{result.summaryUz}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-3">
+                  {result.risks && result.risks.length > 0 && (
+                    <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl">
+                      <h4 className="font-bold text-rose-900 mb-2 flex items-center gap-1.5 text-xs">
+                        <AlertTriangle size={14} /> Выявленные риски
+                      </h4>
+                      <ul className="list-disc list-inside text-rose-800 space-y-1 text-[11px] font-semibold">
+                        {result.risks.map((r, i) => <li key={i}>{r}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {result.nextSteps && result.nextSteps.length > 0 && (
+                    <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
+                      <h4 className="font-bold text-emerald-900 mb-2 flex items-center gap-1.5 text-xs">
+                        <PlayCircle size={14} /> Рекомендуемые шаги
+                      </h4>
+                      <ul className="list-disc list-inside text-emerald-800 space-y-1 text-[11px] font-semibold">
+                        {result.nextSteps.map((s, i) => <li key={i}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {result.proposedDecisions && result.proposedDecisions.length > 0 && (
+                  <div className="border-t pt-4 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Проекты управленческих решений</span>
+                    {result.proposedDecisions.map((d, i) => (
+                      <div key={i} className="bg-white border p-3 rounded-xl flex items-start gap-3 shadow-sm">
+                        <span className="flex items-center justify-center bg-slate-900 text-white w-5 h-5 rounded-full text-[10px] font-bold shrink-0">{String.fromCharCode(65 + i)}</span>
+                        <p className="text-slate-700 font-semibold">{d}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MODALS ═══ */}
+      {/* 1. Add Report Modal */}
+      {showAddReportModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <form onSubmit={handleCreateReportSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl max-w-md w-full space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base font-display">Зарегистрировать отчёт в архив</h3>
+              <button type="button" onClick={() => setShowAddReportModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">Закрыть</button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Название отчёта</label>
+                <input
+                  type="text" required
+                  placeholder="Пример: Финансовый отчет за Q1 2026..."
+                  value={reportTitle}
+                  onChange={e => setReportTitle(e.target.value)}
+                  className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Департамент</label>
+                  <select
+                    value={reportDept}
+                    onChange={e => setReportDept(e.target.value)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-white font-medium"
+                  >
+                    <option value="Проектный офис">Проектный офис</option>
+                    <option value="Финансы">Финансы</option>
+                    <option value="Геология">Геология</option>
+                    <option value="Юридический">Юридический</option>
+                    <option value="HR">HR</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Статус сдачи</label>
+                  <select
+                    value={reportStatus}
+                    onChange={e => setReportStatus(e.target.value as any)}
+                    className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-white font-medium"
+                  >
+                    <option value="pending">Ожидает</option>
+                    <option value="submitted">Сдан</option>
+                    <option value="approved">Утвержден</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Краткая аннотация (Сводка)</label>
+                <textarea
+                  rows={4}
+                  placeholder="Введите краткие выводы по отчёту..."
+                  value={reportSummary}
+                  onChange={e => setReportSummary(e.target.value)}
+                  className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-slate-50/50 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button 
+                type="button" 
+                onClick={() => setShowAddReportModal(false)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                ОТМЕНА
+              </button>
+              <button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                СОХРАНИТЬ
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* 2. Add Sub-Report Modal */}
+      {showAddSubReportModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <form onSubmit={handleCreateSubReportSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl max-w-md w-full space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base font-display">Добавить отчёт сотрудника</h3>
+              <button type="button" onClick={() => setShowAddSubReportModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">Закрыть</button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ФИО сотрудника / Тема отчёта</label>
+                <input
+                  type="text" required
+                  placeholder="Пример: Отчет Иванова А. по IT лицензиям..."
+                  value={subReportTitle}
+                  onChange={e => setSubReportTitle(e.target.value)}
+                  className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-slate-50/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Содержание отчёта</label>
+                <textarea
+                  required rows={6}
+                  placeholder="Введите полное текстовое содержание отчета о результатах и проделанной работе..."
+                  value={subReportContent}
+                  onChange={e => setSubReportContent(e.target.value)}
+                  className="w-full text-xs border border-slate-200 p-2.5 rounded-lg bg-slate-50/50 resize-none font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button 
+                type="button" 
+                onClick={() => setShowAddSubReportModal(false)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                ОТМЕНА
+              </button>
+              <button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-xs"
+              >
+                ДОБАВИТЬ
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
     </div>
   );
 }

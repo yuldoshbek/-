@@ -90,11 +90,11 @@ function AppContent({ user, onLogout }: { user: User | null; onLogout: () => voi
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/meetings" element={<Meetings />} />
               <Route path="/reports" element={<Reports />} />
-              <Route path="/letters" element={<Letters />} />
+              <Route path="/communications" element={<Letters />} />
               <Route path="/documents" element={<Documents />} />
-              <Route path="/team" element={<Team />} />
-              <Route path="/journal" element={<Journal />} />
-              <Route path="/ai-assistant" element={<AIAssistant />} />
+              <Route path="/people" element={<Team />} />
+              <Route path="/issues" element={<Journal />} />
+              <Route path="/ai-tools" element={<AIAssistant />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </div>
@@ -152,11 +152,11 @@ function Sidebar({ onLogout, user }: { onLogout: () => void; user: User | null }
     { moduleId: 'tasks', label: getLabel('tasks'), path: '/tasks', icon: <CheckSquare size={18} /> },
     { moduleId: 'meetings', label: getLabel('meetings'), path: '/meetings', icon: <Calendar size={18} /> },
     { moduleId: 'reports', label: getLabel('reports'), path: '/reports', icon: <FileText size={18} /> },
-    { moduleId: 'letters', label: getLabel('letters'), path: '/letters', icon: <Mail size={18} /> },
+    { moduleId: 'letters', label: getLabel('communications'), path: '/communications', icon: <Mail size={18} /> },
     { moduleId: 'documents', label: getLabel('documents'), path: '/documents', icon: <FolderOpen size={18} /> },
-    { moduleId: 'team', label: getLabel('team'), path: '/team', icon: <Users size={18} /> },
-    { moduleId: 'journal', label: getLabel('journal'), path: '/journal', icon: <BookOpen size={18} /> },
-    { moduleId: 'ai', label: getLabel('ai'), path: '/ai-assistant', icon: <Sparkles size={18} /> },
+    { moduleId: 'team', label: getLabel('people'), path: '/people', icon: <Users size={18} /> },
+    { moduleId: 'journal', label: getLabel('issues'), path: '/issues', icon: <AlertTriangle size={18} /> },
+    { moduleId: 'ai', label: getLabel('ai_tools'), path: '/ai-tools', icon: <Sparkles size={18} /> },
     { moduleId: 'settings', label: getLabel('settings'), path: '/settings', icon: <SettingsIcon size={18} /> },
   ];
 

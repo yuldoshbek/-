@@ -36,6 +36,31 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const getLabel = (key: string) => {
+    if (key === 'communications') {
+      if (domain === 'GOV' || domain === 'OPS' || domain === 'PRIVATE') return 'Переписка';
+      return 'Коммуникации';
+    }
+    if (key === 'people') {
+      if (domain === 'GOV') return 'Штат и Кадры';
+      if (domain === 'CEO') return 'Персонал';
+      if (domain === 'IT' || domain === 'PROJECT') return 'Команда';
+      if (domain === 'PRIVATE') return 'Контакты';
+      if (domain === 'OPS') return 'Отделы';
+    }
+    if (key === 'issues') {
+      if (domain === 'GOV') return 'Вопросы и Риски';
+      if (domain === 'CEO') return 'Проблемы и Риски';
+      if (domain === 'IT') return 'Бэклог / Риски';
+      if (domain === 'PRIVATE') return 'Проблемы';
+      if (domain === 'OPS') return 'Контроль / Риски';
+      if (domain === 'PROJECT') return 'Риски и Решения';
+    }
+    if (key === 'ai_tools') {
+      if (domain === 'GOV') return 'ИИ-Инструменты';
+      if (domain === 'CEO' || domain === 'IT') return 'AI-Ассистент';
+      if (domain === 'PRIVATE') return 'ИИ-Помощник';
+      return 'ИИ-Аналитик';
+    }
     return profile.labels[key] || key;
   };
 
